@@ -1,0 +1,20 @@
+{
+  "name": "AI伴读小精灵",
+  "short_name": "AI伴读",
+  "description": "让学习像游戏一样有趣，让陪伴随时随地",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFE5EC",
+  "theme_color": "#34D399",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "assets/images/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "categories": ["education", "kids"],
+  "lang": "zh-CN"
+}
+

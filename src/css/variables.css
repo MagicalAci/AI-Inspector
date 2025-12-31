@@ -1,0 +1,144 @@
+/* ============================================
+   AI伴读小精灵 - CSS变量定义
+   基于Apple Design Language
+   ============================================ */
+
+:root {
+  /* ==========================================
+     颜色系统
+     ========================================== */
+  
+  /* 主渐变色 - 粉紫梦幻 */
+  --gradient-primary: linear-gradient(180deg, #FFE5EC 0%, #E8F4F8 50%, #D4E8F2 100%);
+  --gradient-header: linear-gradient(180deg, #FFDEE9 0%, #B5FFFC 100%);
+  --gradient-card: linear-gradient(135deg, #FFFFFF 0%, #F8F9FA 100%);
+  
+  /* 品牌色 */
+  --color-brand-pink: #FF6B9D;
+  --color-brand-purple: #A855F7;
+  --color-brand-cyan: #22D3EE;
+  --color-brand-mint: #34D399;
+  
+  /* iOS 系统色 */
+  --color-blue: #007AFF;
+  --color-green: #34C759;
+  --color-orange: #FF9500;
+  --color-red: #FF3B30;
+  --color-purple: #AF52DE;
+  --color-pink: #FF2D55;
+  --color-teal: #5AC8FA;
+  --color-yellow: #FFCC00;
+  
+  /* 中性色 */
+  --color-white: #FFFFFF;
+  --color-background: #F2F2F7;
+  --color-card: #FFFFFF;
+  --color-separator: rgba(60, 60, 67, 0.12);
+  
+  /* 文字色 */
+  --text-primary: #1C1C1E;
+  --text-secondary: #8E8E93;
+  --text-tertiary: #C7C7CC;
+  --text-white: #FFFFFF;
+  
+  /* 按钮渐变 */
+  --btn-gradient-primary: linear-gradient(135deg, #34D399 0%, #10B981 100%);
+  --btn-gradient-secondary: linear-gradient(135deg, #FF6B9D 0%, #FF8A80 100%);
+  --btn-gradient-warning: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+  
+  /* ==========================================
+     间距系统 (8px grid)
+     ========================================== */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  --spacing-3xl: 64px;
+  
+  /* ==========================================
+     圆角系统
+     ========================================== */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+  --radius-full: 9999px;
+  
+  /* ==========================================
+     阴影系统
+     ========================================== */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.16);
+  --shadow-card: 0 2px 16px rgba(0, 0, 0, 0.06);
+  --shadow-button: 0 4px 16px rgba(52, 211, 153, 0.4);
+  
+  /* ==========================================
+     字体系统
+     ========================================== */
+  --font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'PingFang SC', 'Helvetica Neue', sans-serif;
+  --font-family-rounded: 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, sans-serif;
+  
+  /* 字号 */
+  --font-size-xs: 11px;
+  --font-size-sm: 13px;
+  --font-size-base: 15px;
+  --font-size-md: 17px;
+  --font-size-lg: 20px;
+  --font-size-xl: 24px;
+  --font-size-2xl: 28px;
+  --font-size-3xl: 34px;
+  
+  /* 字重 */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  /* 行高 */
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+  
+  /* ==========================================
+     动画系统
+     ========================================== */
+  --transition-fast: 0.15s ease-out;
+  --transition-normal: 0.25s ease-out;
+  --transition-slow: 0.4s ease-out;
+  --transition-spring: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  
+  /* ==========================================
+     层级系统
+     ========================================== */
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-modal: 300;
+  --z-toast: 400;
+  --z-tooltip: 500;
+  
+  /* ==========================================
+     布局尺寸
+     ========================================== */
+  --header-height: 88px;
+  --tab-bar-height: 83px;
+  --safe-area-top: env(safe-area-inset-top, 44px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 34px);
+  --content-max-width: 428px;
+}
+
+/* 暗色模式支持 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: #1C1C1E;
+    --color-card: #2C2C2E;
+    --text-primary: #FFFFFF;
+    --text-secondary: #98989D;
+    --color-separator: rgba(84, 84, 88, 0.65);
+  }
+}
+

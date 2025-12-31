@@ -1,0 +1,21 @@
+{
+  "name": "ai-study-buddy",
+  "version": "1.0.0",
+  "description": "AI伴读小精灵 - 面向儿童的AI学习陪伴APP",
+  "main": "src/index.html",
+  "scripts": {
+    "start": "npx serve src -l 3000",
+    "dev": "npx serve src -l 3000"
+  },
+  "keywords": [
+    "education",
+    "ai",
+    "kids",
+    "learning",
+    "study-buddy"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {}
+}
+

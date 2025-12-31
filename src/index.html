@@ -2,1106 +2,584 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>小伴学 - AI智能伴读APP</title>
-  <link rel="stylesheet" href="css/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#FFE5EC">
+  <title>AI伴读小精灵 - StudyBuddy</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
+  <link rel="apple-touch-icon" href="assets/images/app-icon.png">
+  
+  <!-- FontAwesome 6 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <style>
-    /* 页面展示器样式 */
-    body {
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 40px 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      flex-direction: column;
-      gap: 30px;
-    }
-    
-    .demo-header {
-      text-align: center;
-      color: white;
-    }
-    
-    .demo-header h1 {
-      font-size: 32px;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-    
-    .demo-header p {
-      font-size: 16px;
-      opacity: 0.9;
-    }
-    
-    .phone-container {
-      display: flex;
-      gap: 40px;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-    
-    .phone-wrapper {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-    }
-    
-    .phone-label {
-      color: white;
-      font-size: 14px;
-      font-weight: 600;
-      padding: 8px 16px;
-      background: rgba(255,255,255,0.2);
-      border-radius: 20px;
-    }
-    
-    /* 单机模式展示 */
-    .single-phone-mode {
-      display: none;
-    }
-    
-    .nav-selector {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      justify-content: center;
-      max-width: 600px;
-    }
-    
-    .nav-selector button {
-      padding: 10px 20px;
-      border: none;
-      background: rgba(255,255,255,0.2);
-      color: white;
-      border-radius: 25px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 500;
-      transition: all 0.3s ease;
-    }
-    
-    .nav-selector button:hover,
-    .nav-selector button.active {
-      background: white;
-      color: #764ba2;
-    }
-    
-    @media (max-width: 900px) {
-      .phone-container {
-        flex-direction: column;
-      }
-    }
-  </style>
+  
+  <!-- Lottie Player -->
+  <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/pages.css">
+  
+  <!-- iOS PWA Support -->
+  <meta name="apple-mobile-web-app-title" content="AI伴读">
+  <link rel="manifest" href="manifest.json">
 </head>
 <body>
-  <div class="demo-header">
-    <h1>🎓 小伴学 StudyBuddy</h1>
-    <p>面向6-12岁儿童的AI智能伴读与学习监督平台</p>
-  </div>
-  
-  <div class="nav-selector">
-    <button class="active" onclick="showPage('home')">首页</button>
-    <button onclick="showPage('tasks')">任务看板</button>
-    <button onclick="showPage('video')">视频陪伴</button>
-    <button onclick="showPage('recite')">背诵助手</button>
-    <button onclick="showPage('dictation')">听写助手</button>
-    <button onclick="showPage('ai-teacher')">AI老师</button>
-    <button onclick="showPage('achievements')">成就中心</button>
-    <button onclick="showPage('parent')">家长端</button>
-  </div>
-  
-  <div class="phone-container">
-    <!-- iPhone 15 Pro 模拟器 -->
-    <div class="phone-wrapper">
-      <div class="phone-frame">
-        <div class="phone-screen">
-          <div class="dynamic-island"></div>
-          
-          <!-- 状态栏 -->
-          <div class="status-bar">
-            <span class="time">11:24</span>
-            <span class="icons">
-              <i class="fas fa-signal"></i>
-              <i class="fas fa-wifi"></i>
-              <i class="fas fa-battery-full"></i>
-            </span>
-          </div>
-          
-          <!-- 首页 -->
-          <div id="page-home" class="page-container hide-scrollbar">
-            <!-- 顶部问候 -->
-            <div style="padding: 16px 20px 0;">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                  <p style="font-size: 13px; color: var(--gray-500);">下午好 ☀️</p>
-                  <h1 style="font-size: 24px; font-weight: 700; color: var(--gray-900); margin-top: 2px;">小明同学</h1>
-                </div>
-                <div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #FFE5DC 0%, #FFF0EB 100%); display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: var(--shadow-md);">
-                  👦
-                </div>
+  <div class="app-container" id="app">
+    
+    <!-- ==========================================
+         首页 - 豆包老师主页
+         ========================================== -->
+    <div class="page page-home active" id="page-home">
+      <!-- 顶部栏 -->
+      <div class="home-header">
+        <button class="history-btn" aria-label="历史记录">
+          <i class="fa-regular fa-clock"></i>
+        </button>
+      </div>
+      
+      <!-- 虚拟人展示 -->
+      <div class="hero-section">
+        <div class="virtual-avatar animate-float">
+          <img src="assets/images/avatar-teacher.svg" alt="AI老师" id="home-avatar">
+        </div>
+        <h1 class="hero-title">有疑问，就找我</h1>
+      </div>
+      
+      <!-- 任务卡片滚动区 -->
+      <div class="task-section">
+        <div class="task-scroll">
+          <!-- 任务卡片1 -->
+          <div class="task-card" data-task="literature">
+            <div class="task-card-header">
+              <div class="task-icon literature">
+                <i class="fa-solid fa-book-open"></i>
               </div>
-            </div>
-            
-            <!-- 今日专注卡片 -->
-            <div style="padding: 20px;">
-              <div class="card" style="background: linear-gradient(135deg, #FF6B35 0%, #FF8F66 100%); color: white; position: relative; overflow: hidden;">
-                <div style="position: absolute; right: -20px; top: -20px; width: 120px; height: 120px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
-                <div style="position: absolute; right: 30px; bottom: -30px; width: 80px; height: 80px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
-                
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; position: relative; z-index: 1;">
-                  <div>
-                    <p style="font-size: 13px; opacity: 0.9;">今日专注时长</p>
-                    <div style="display: flex; align-items: baseline; gap: 4px; margin-top: 8px;">
-                      <span style="font-size: 42px; font-weight: 700;">47</span>
-                      <span style="font-size: 16px;">分钟</span>
-                    </div>
-                    <p style="font-size: 12px; opacity: 0.8; margin-top: 4px;">
-                      <i class="fas fa-arrow-up" style="margin-right: 4px;"></i>比昨天多12分钟
-                    </p>
-                  </div>
-                  <div style="text-align: center;">
-                    <div style="width: 70px; height: 70px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center;">
-                      <span style="font-size: 24px;">🎯</span>
-                    </div>
-                    <p style="font-size: 11px; margin-top: 6px; opacity: 0.9;">专注达人</p>
-                  </div>
-                </div>
-                
-                <div style="margin-top: 20px; display: flex; gap: 12px; position: relative; z-index: 1;">
-                  <div style="flex: 1; background: rgba(255,255,255,0.2); border-radius: 12px; padding: 12px; text-align: center;">
-                    <p style="font-size: 20px; font-weight: 700;">3</p>
-                    <p style="font-size: 11px; opacity: 0.9;">完成任务</p>
-                  </div>
-                  <div style="flex: 1; background: rgba(255,255,255,0.2); border-radius: 12px; padding: 12px; text-align: center;">
-                    <p style="font-size: 20px; font-weight: 700;">92%</p>
-                    <p style="font-size: 11px; opacity: 0.9;">平均专注</p>
-                  </div>
-                  <div style="flex: 1; background: rgba(255,255,255,0.2); border-radius: 12px; padding: 12px; text-align: center;">
-                    <p style="font-size: 20px; font-weight: 700;">🔥5</p>
-                    <p style="font-size: 11px; opacity: 0.9;">连续天数</p>
-                  </div>
-                </div>
+              <div>
+                <div class="task-title">《童年》刻画了众多的人物形象，____是一个贪婪自私、专横的人。</div>
+                <div class="task-category" style="color: var(--color-brand-pink);">语文</div>
               </div>
-            </div>
-            
-            <!-- 快速开始学习 -->
-            <div style="padding: 0 20px;">
-              <button class="btn btn-secondary btn-block btn-lg" style="background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%); box-shadow: 0 8px 24px rgba(78, 205, 196, 0.4);" onclick="showPage('video')">
-                <i class="fas fa-video"></i>
-                <span>开始学习</span>
-                <span style="margin-left: auto; font-size: 12px; opacity: 0.9;">小伴在等你~</span>
-              </button>
-            </div>
-            
-            <!-- 今日任务 -->
-            <div style="padding: 20px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <h2 style="font-size: 18px; font-weight: 700; color: var(--gray-900);">📋 今日任务</h2>
-                <a href="#" style="font-size: 13px; color: var(--primary); text-decoration: none;" onclick="showPage('tasks')">查看全部 <i class="fas fa-chevron-right" style="font-size: 10px;"></i></a>
-              </div>
-              
-              <!-- 任务卡片1 -->
-              <div class="mission-card" style="margin-bottom: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                  <span class="mission-badge urgent"><i class="fas fa-bolt"></i> 紧急任务</span>
-                  <span style="font-size: 12px; color: var(--gray-500);">⏰ 16:00前</span>
-                </div>
-                <h3 class="mission-title">📖 语文 · 背诵《静夜思》</h3>
-                <p class="mission-desc">完成古诗背诵并录音提交</p>
-                <div class="mission-progress">
-                  <div class="mission-progress-bar" style="width: 60%;"></div>
-                </div>
-                <p style="font-size: 11px; color: var(--gray-500); margin-top: 8px;">进度 3/5 段</p>
-              </div>
-              
-              <!-- 任务卡片2 -->
-              <div class="mission-card" style="margin-bottom: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                  <span class="mission-badge"><i class="fas fa-star"></i> 主线任务</span>
-                  <span style="font-size: 12px; color: var(--gray-500);">⏰ 18:00前</span>
-                </div>
-                <h3 class="mission-title">➕ 数学 · 口算练习</h3>
-                <p class="mission-desc">完成20道两位数加减法</p>
-                <div class="mission-progress">
-                  <div class="mission-progress-bar" style="width: 0%;"></div>
-                </div>
-                <p style="font-size: 11px; color: var(--gray-500); margin-top: 8px;">尚未开始</p>
-              </div>
-              
-              <!-- 任务卡片3 -->
-              <div class="mission-card completed">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                  <span class="mission-badge completed"><i class="fas fa-check"></i> 已完成</span>
-                  <span style="font-size: 12px; color: var(--success);">+15积分</span>
-                </div>
-                <h3 class="mission-title" style="text-decoration: line-through; color: var(--gray-400);">📝 英语 · 单词听写</h3>
-                <p class="mission-desc" style="color: var(--gray-400);">第三单元10个单词</p>
-                <div class="mission-progress">
-                  <div class="mission-progress-bar" style="width: 100%; background: var(--success);"></div>
-                </div>
-                <p style="font-size: 11px; color: var(--success); margin-top: 8px;">✓ 正确率 90%</p>
-              </div>
-            </div>
-            
-            <!-- AI小伴说 -->
-            <div style="padding: 0 20px 20px;">
-              <div class="card" style="background: linear-gradient(135deg, #F0F9FF 0%, #FFF7ED 100%); border: 1px solid var(--gray-100);">
-                <div style="display: flex; gap: 12px;">
-                  <div style="width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #FFE5DC 0%, #FFF0EB 100%); display: flex; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0;">
-                    🤖
-                  </div>
-                  <div>
-                    <p style="font-size: 14px; font-weight: 600; color: var(--gray-800); margin-bottom: 4px;">小伴提醒你 💬</p>
-                    <p style="font-size: 13px; color: var(--gray-600); line-height: 1.5;">今天的背诵任务要抓紧完成哦！加油，你已经连续专注5天了，是班上的学习小明星！⭐</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div style="height: 20px;"></div>
-          </div>
-          
-          <!-- 任务看板页面 -->
-          <div id="page-tasks" class="page-container hide-scrollbar" style="display: none;">
-            <div class="nav-bar">
-              <button class="nav-btn" onclick="showPage('home')"><i class="fas fa-chevron-left"></i></button>
-              <span class="nav-title">🎯 特工任务中心</span>
-              <button class="nav-btn"><i class="fas fa-ellipsis"></i></button>
-            </div>
-            
-            <!-- 任务统计 -->
-            <div style="padding: 0 20px 20px;">
-              <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border-radius: 20px; padding: 20px; color: white; position: relative; overflow: hidden;">
-                <div style="position: absolute; top: 0; right: 0; width: 150px; height: 150px; background: url('data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"><circle cx=\"50\" cy=\"50\" r=\"40\" fill=\"none\" stroke=\"rgba(255,107,53,0.3)\" stroke-width=\"2\" stroke-dasharray=\"10 5\"/></svg>') center/contain no-repeat; opacity: 0.5;"></div>
-                
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
-                  <span style="font-size: 24px;">🕵️</span>
-                  <span style="font-size: 14px; font-weight: 600;">特工等级: <span style="color: #FFD93D;">精英探员</span></span>
-                </div>
-                
-                <div style="display: flex; justify-content: space-between; gap: 16px;">
-                  <div style="text-align: center; flex: 1;">
-                    <div style="font-size: 28px; font-weight: 700; color: #4ECDC4;">6</div>
-                    <div style="font-size: 11px; opacity: 0.7; margin-top: 4px;">今日任务</div>
-                  </div>
-                  <div style="width: 1px; background: rgba(255,255,255,0.2);"></div>
-                  <div style="text-align: center; flex: 1;">
-                    <div style="font-size: 28px; font-weight: 700; color: #FF6B35;">3</div>
-                    <div style="font-size: 11px; opacity: 0.7; margin-top: 4px;">已完成</div>
-                  </div>
-                  <div style="width: 1px; background: rgba(255,255,255,0.2);"></div>
-                  <div style="text-align: center; flex: 1;">
-                    <div style="font-size: 28px; font-weight: 700; color: #FFD93D;">125</div>
-                    <div style="font-size: 11px; opacity: 0.7; margin-top: 4px;">积分</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- 任务标签 -->
-            <div style="padding: 0 20px; margin-bottom: 16px;">
-              <div style="display: flex; gap: 8px; overflow-x: auto;" class="hide-scrollbar">
-                <button style="padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 20px; font-size: 13px; font-weight: 600; white-space: nowrap;">全部 (6)</button>
-                <button style="padding: 8px 16px; background: var(--gray-100); color: var(--gray-600); border: none; border-radius: 20px; font-size: 13px; font-weight: 500; white-space: nowrap;">进行中 (2)</button>
-                <button style="padding: 8px 16px; background: var(--gray-100); color: var(--gray-600); border: none; border-radius: 20px; font-size: 13px; font-weight: 500; white-space: nowrap;">已完成 (3)</button>
-                <button style="padding: 8px 16px; background: var(--gray-100); color: var(--gray-600); border: none; border-radius: 20px; font-size: 13px; font-weight: 500; white-space: nowrap;">待开始 (1)</button>
-              </div>
-            </div>
-            
-            <!-- 任务列表 -->
-            <div style="padding: 0 20px;">
-              <h3 style="font-size: 14px; font-weight: 600; color: var(--gray-500); margin-bottom: 12px;">🔴 紧急任务</h3>
-              
-              <div style="background: white; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid var(--error);">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <div style="display: flex; gap: 12px; align-items: center;">
-                    <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%); display: flex; align-items: center; justify-content: center; font-size: 20px;">
-                      📖
-                    </div>
-                    <div>
-                      <h4 style="font-size: 15px; font-weight: 600; color: var(--gray-800);">背诵《静夜思》</h4>
-                      <p style="font-size: 12px; color: var(--gray-500); margin-top: 2px;">语文 · 剩余 2小时36分</p>
-                    </div>
-                  </div>
-                  <button style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary); border: none; color: white; cursor: pointer;" onclick="showPage('recite')">
-                    <i class="fas fa-play" style="font-size: 12px;"></i>
-                  </button>
-                </div>
-                <div style="margin-top: 12px;">
-                  <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--gray-500); margin-bottom: 4px;">
-                    <span>进度</span>
-                    <span>60%</span>
-                  </div>
-                  <div style="height: 6px; background: var(--gray-200); border-radius: 3px; overflow: hidden;">
-                    <div style="width: 60%; height: 100%; background: var(--primary); border-radius: 3px;"></div>
-                  </div>
-                </div>
-              </div>
-              
-              <h3 style="font-size: 14px; font-weight: 600; color: var(--gray-500); margin: 20px 0 12px;">⭐ 主线任务</h3>
-              
-              <div style="background: white; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid var(--primary);">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <div style="display: flex; gap: 12px; align-items: center;">
-                    <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%); display: flex; align-items: center; justify-content: center; font-size: 20px;">
-                      ➕
-                    </div>
-                    <div>
-                      <h4 style="font-size: 15px; font-weight: 600; color: var(--gray-800);">口算练习</h4>
-                      <p style="font-size: 12px; color: var(--gray-500); margin-top: 2px;">数学 · 20道题</p>
-                    </div>
-                  </div>
-                  <button style="width: 36px; height: 36px; border-radius: 50%; background: var(--gray-100); border: none; color: var(--gray-500); cursor: pointer;">
-                    <i class="fas fa-play" style="font-size: 12px;"></i>
-                  </button>
-                </div>
-              </div>
-              
-              <div style="background: white; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow-sm); border-left: 4px solid var(--primary);">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <div style="display: flex; gap: 12px; align-items: center;">
-                    <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%); display: flex; align-items: center; justify-content: center; font-size: 20px;">
-                      📚
-                    </div>
-                    <div>
-                      <h4 style="font-size: 15px; font-weight: 600; color: var(--gray-800);">阅读30分钟</h4>
-                      <p style="font-size: 12px; color: var(--gray-500); margin-top: 2px;">课外阅读 · 《小王子》</p>
-                    </div>
-                  </div>
-                  <button style="width: 36px; height: 36px; border-radius: 50%; background: var(--gray-100); border: none; color: var(--gray-500); cursor: pointer;">
-                    <i class="fas fa-play" style="font-size: 12px;"></i>
-                  </button>
-                </div>
-              </div>
-              
-              <h3 style="font-size: 14px; font-weight: 600; color: var(--gray-500); margin: 20px 0 12px;">✅ 已完成</h3>
-              
-              <div style="background: var(--gray-50); border-radius: 16px; padding: 16px; margin-bottom: 12px; border-left: 4px solid var(--success);">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <div style="display: flex; gap: 12px; align-items: center;">
-                    <div style="width: 44px; height: 44px; border-radius: 12px; background: var(--success-light); display: flex; align-items: center; justify-content: center; font-size: 20px;">
-                      ✅
-                    </div>
-                    <div>
-                      <h4 style="font-size: 15px; font-weight: 500; color: var(--gray-500); text-decoration: line-through;">英语单词听写</h4>
-                      <p style="font-size: 12px; color: var(--success); margin-top: 2px;">正确率 90% · +15积分</p>
-                    </div>
-                  </div>
-                  <span style="font-size: 20px;">🏆</span>
-                </div>
-              </div>
-              
-              <div style="background: var(--gray-50); border-radius: 16px; padding: 16px; margin-bottom: 12px; border-left: 4px solid var(--success);">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <div style="display: flex; gap: 12px; align-items: center;">
-                    <div style="width: 44px; height: 44px; border-radius: 12px; background: var(--success-light); display: flex; align-items: center; justify-content: center; font-size: 20px;">
-                      ✅
-                    </div>
-                    <div>
-                      <h4 style="font-size: 15px; font-weight: 500; color: var(--gray-500); text-decoration: line-through;">抄写生字</h4>
-                      <p style="font-size: 12px; color: var(--success); margin-top: 2px;">完成度 100% · +10积分</p>
-                    </div>
-                  </div>
-                  <span style="font-size: 20px;">⭐</span>
-                </div>
-              </div>
-            </div>
-            
-            <div style="height: 20px;"></div>
-          </div>
-          
-          <!-- 视频陪伴页面 -->
-          <div id="page-video" class="page-container no-tab-bar" style="display: none; padding: 0; background: linear-gradient(180deg, #FFE5DC 0%, #E8F4F8 50%, #DCE8F8 100%);">
-            <div class="video-call-container">
-              <!-- 顶部控制栏 -->
-              <div style="position: absolute; top: 70px; left: 20px; right: 20px; display: flex; justify-content: space-between; align-items: center; z-index: 10;">
-                <button style="width: 40px; height: 40px; border-radius: 50%; background: rgba(0,0,0,0.3); border: none; color: white; cursor: pointer; backdrop-filter: blur(10px);" onclick="showPage('home')">
-                  <i class="fas fa-chevron-left"></i>
-                </button>
-                
-                <!-- 专注度指示器 -->
-                <div class="focus-indicator">
-                  <div class="focus-dot"></div>
-                  <span class="focus-text">专注度 <span class="focus-value">92%</span></span>
-                </div>
-                
-                <button style="width: 40px; height: 40px; border-radius: 50%; background: rgba(0,0,0,0.3); border: none; color: white; cursor: pointer; backdrop-filter: blur(10px);">
-                  <i class="fas fa-ellipsis"></i>
-                </button>
-              </div>
-              
-              <!-- 小窗 - 用户摄像头 -->
-              <div class="video-pip" style="background: linear-gradient(135deg, #374151 0%, #1F2937 100%);">
-                <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 32px;">
-                  👦
-                </div>
-              </div>
-              
-              <!-- 虚拟人 -->
-              <div class="video-main" style="padding-top: 120px;">
-                <div class="avatar-container">
-                  <div class="avatar-ring"></div>
-                  <div class="avatar-image">
-                    <svg viewBox="0 0 200 200" style="width: 100%; height: 100%;">
-                      <defs>
-                        <linearGradient id="avatarBg" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" style="stop-color:#FFE5DC"/>
-                          <stop offset="100%" style="stop-color:#FFF0EB"/>
-                        </linearGradient>
-                      </defs>
-                      <circle cx="100" cy="100" r="100" fill="url(#avatarBg)"/>
-                      <text x="100" y="120" text-anchor="middle" font-size="80">🤖</text>
-                    </svg>
-                  </div>
-                </div>
-                
-                <div style="text-align: center; margin-top: 24px;">
-                  <h2 style="font-size: 22px; font-weight: 700; color: var(--gray-800);">小伴</h2>
-                  <p style="font-size: 14px; color: var(--gray-500); margin-top: 4px;">正在陪你学习中...</p>
-                </div>
-                
-                <!-- 学习时长 -->
-                <div style="margin-top: 30px; text-align: center;">
-                  <div style="background: rgba(255,255,255,0.9); padding: 16px 32px; border-radius: 20px; display: inline-block; box-shadow: var(--shadow-md);">
-                    <p style="font-size: 12px; color: var(--gray-500);">本次学习时长</p>
-                    <p style="font-size: 32px; font-weight: 700; color: var(--primary); margin-top: 4px;">23:45</p>
-                  </div>
-                </div>
-                
-                <!-- AI对话气泡 -->
-                <div style="margin-top: 30px; background: white; padding: 16px 20px; border-radius: 20px; max-width: 280px; box-shadow: var(--shadow-md); position: relative;">
-                  <div style="position: absolute; top: -8px; left: 50%; transform: translateX(-50%); width: 16px; height: 16px; background: white; border-radius: 4px; transform: rotate(45deg);"></div>
-                  <p style="font-size: 14px; color: var(--gray-700); text-align: center; line-height: 1.6;">
-                    太棒了！你已经专注学习23分钟啦，继续保持哦～ 📚✨
-                  </p>
-                </div>
-              </div>
-              
-              <!-- 底部控制栏 -->
-              <div class="video-controls">
-                <button class="video-btn video-btn-mute">
-                  <i class="fas fa-microphone"></i>
-                </button>
-                <button class="video-btn" style="background: rgba(255,255,255,0.9); color: var(--gray-700);">
-                  <i class="fas fa-comment"></i>
-                </button>
-                <button class="video-btn video-btn-end" onclick="showPage('home')">
-                  <i class="fas fa-phone-slash"></i>
-                </button>
-                <button class="video-btn video-btn-camera">
-                  <i class="fas fa-video"></i>
-                </button>
-                <button class="video-btn" style="background: rgba(255,255,255,0.9); color: var(--gray-700);">
-                  <i class="fas fa-tasks"></i>
-                </button>
-              </div>
-              
-              <!-- Home Indicator -->
-              <div class="home-indicator" style="background: var(--gray-400);"></div>
-            </div>
-          </div>
-          
-          <!-- 背诵助手页面 -->
-          <div id="page-recite" class="page-container hide-scrollbar" style="display: none;">
-            <div class="nav-bar">
-              <button class="nav-btn" onclick="showPage('tasks')"><i class="fas fa-chevron-left"></i></button>
-              <span class="nav-title">📖 背诵助手</span>
-              <button class="nav-btn"><i class="fas fa-gear"></i></button>
-            </div>
-            
-            <!-- 当前任务 -->
-            <div style="padding: 0 20px 20px;">
-              <div style="background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%); border-radius: 20px; padding: 20px; position: relative; overflow: hidden;">
-                <div style="position: absolute; right: -20px; top: -20px; font-size: 80px; opacity: 0.2;">📜</div>
-                <h3 style="font-size: 16px; font-weight: 600; color: var(--gray-800);">静夜思</h3>
-                <p style="font-size: 13px; color: var(--gray-600); margin-top: 4px;">唐 · 李白</p>
-                <div style="display: flex; gap: 8px; margin-top: 12px;">
-                  <span style="background: rgba(0,0,0,0.1); padding: 4px 10px; border-radius: 12px; font-size: 11px;">五言绝句</span>
-                  <span style="background: rgba(0,0,0,0.1); padding: 4px 10px; border-radius: 12px; font-size: 11px;">必背古诗</span>
-                </div>
-              </div>
-            </div>
-            
-            <!-- 背诵内容 -->
-            <div style="padding: 0 20px;">
-              <div style="background: white; border-radius: 20px; padding: 24px; box-shadow: var(--shadow-card);">
-                <div style="text-align: center; line-height: 2.2; font-size: 20px; font-weight: 500; color: var(--gray-800);">
-                  <p style="color: var(--primary);">床前明月光，</p>
-                  <p style="color: var(--primary);">疑是地上霜。</p>
-                  <p style="color: var(--gray-400);">举头望明月，</p>
-                  <p style="color: var(--gray-400);">低头思故乡。</p>
-                </div>
-                
-                <div style="margin-top: 20px; display: flex; justify-content: center; gap: 8px;">
-                  <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary);"></span>
-                  <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary);"></span>
-                  <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--gray-300);"></span>
-                  <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--gray-300);"></span>
-                </div>
-                <p style="text-align: center; font-size: 12px; color: var(--gray-500); margin-top: 8px;">已掌握 2/4 句</p>
-              </div>
-            </div>
-            
-            <!-- 模式选择 -->
-            <div style="padding: 20px;">
-              <h3 style="font-size: 14px; font-weight: 600; color: var(--gray-500); margin-bottom: 12px;">选择模式</h3>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                <div style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); border-radius: 16px; padding: 16px; text-align: center; color: white; cursor: pointer;">
-                  <div style="font-size: 28px; margin-bottom: 8px;">🎤</div>
-                  <p style="font-size: 14px; font-weight: 600;">朗读模式</p>
-                  <p style="font-size: 11px; opacity: 0.9; margin-top: 4px;">跟读并录音</p>
-                </div>
-                <div style="background: white; border-radius: 16px; padding: 16px; text-align: center; cursor: pointer; border: 2px solid var(--gray-200);">
-                  <div style="font-size: 28px; margin-bottom: 8px;">🧠</div>
-                  <p style="font-size: 14px; font-weight: 600; color: var(--gray-700);">背诵模式</p>
-                  <p style="font-size: 11px; color: var(--gray-500); margin-top: 4px;">隐藏文字</p>
-                </div>
-                <div style="background: white; border-radius: 16px; padding: 16px; text-align: center; cursor: pointer; border: 2px solid var(--gray-200);">
-                  <div style="font-size: 28px; margin-bottom: 8px;">🎧</div>
-                  <p style="font-size: 14px; font-weight: 600; color: var(--gray-700);">听读模式</p>
-                  <p style="font-size: 11px; color: var(--gray-500); margin-top: 4px;">AI朗读</p>
-                </div>
-                <div style="background: white; border-radius: 16px; padding: 16px; text-align: center; cursor: pointer; border: 2px solid var(--gray-200);">
-                  <div style="font-size: 28px; margin-bottom: 8px;">✍️</div>
-                  <p style="font-size: 14px; font-weight: 600; color: var(--gray-700);">默写模式</p>
-                  <p style="font-size: 11px; color: var(--gray-500); margin-top: 4px;">手写练习</p>
-                </div>
-              </div>
-            </div>
-            
-            <!-- 开始按钮 -->
-            <div style="padding: 0 20px 20px;">
-              <button class="btn btn-primary btn-block btn-lg">
-                <i class="fas fa-microphone"></i>
-                <span>开始朗读</span>
-              </button>
-            </div>
-          </div>
-          
-          <!-- 听写助手页面 -->
-          <div id="page-dictation" class="page-container hide-scrollbar" style="display: none;">
-            <div class="nav-bar">
-              <button class="nav-btn" onclick="showPage('tasks')"><i class="fas fa-chevron-left"></i></button>
-              <span class="nav-title">✏️ 听写助手</span>
-              <button class="nav-btn"><i class="fas fa-gear"></i></button>
-            </div>
-            
-            <!-- 听写设置 -->
-            <div style="padding: 0 20px 20px;">
-              <div style="background: white; border-radius: 20px; padding: 20px; box-shadow: var(--shadow-card);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                  <div>
-                    <h3 style="font-size: 16px; font-weight: 600; color: var(--gray-800);">英语单词听写</h3>
-                    <p style="font-size: 13px; color: var(--gray-500); margin-top: 2px;">第三单元 · 10个单词</p>
-                  </div>
-                  <span style="font-size: 32px;">📝</span>
-                </div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                  <div style="background: var(--gray-50); border-radius: 12px; padding: 12px;">
-                    <p style="font-size: 12px; color: var(--gray-500);">朗读速度</p>
-                    <p style="font-size: 16px; font-weight: 600; color: var(--gray-800); margin-top: 4px;">正常</p>
-                  </div>
-                  <div style="background: var(--gray-50); border-radius: 12px; padding: 12px;">
-                    <p style="font-size: 12px; color: var(--gray-500);">重复次数</p>
-                    <p style="font-size: 16px; font-weight: 600; color: var(--gray-800); margin-top: 4px;">2次</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- 听写进行中 -->
-            <div style="padding: 0 20px;">
-              <div style="background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%); border-radius: 20px; padding: 30px; text-align: center; color: white;">
-                <p style="font-size: 14px; opacity: 0.9;">当前单词</p>
-                <div style="margin: 20px 0;">
-                  <div style="width: 80px; height: 80px; background: rgba(255,255,255,0.2); border-radius: 50%; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
-                    <i class="fas fa-volume-high" style="font-size: 32px;"></i>
-                  </div>
-                </div>
-                <p style="font-size: 24px; font-weight: 700; letter-spacing: 4px;">Apple</p>
-                <p style="font-size: 14px; opacity: 0.8; margin-top: 8px;">第 3 / 10 个</p>
-                
-                <div style="display: flex; gap: 12px; margin-top: 24px; justify-content: center;">
-                  <button style="padding: 12px 24px; background: rgba(255,255,255,0.2); border: none; border-radius: 25px; color: white; font-size: 14px; cursor: pointer;">
-                    <i class="fas fa-redo"></i> 再听一遍
-                  </button>
-                  <button style="padding: 12px 24px; background: white; border: none; border-radius: 25px; color: var(--secondary-dark); font-size: 14px; font-weight: 600; cursor: pointer;">
-                    <i class="fas fa-forward"></i> 下一个
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            <!-- 进度 -->
-            <div style="padding: 20px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <span style="font-size: 14px; font-weight: 600; color: var(--gray-700);">听写进度</span>
-                <span style="font-size: 14px; color: var(--primary); font-weight: 600;">30%</span>
-              </div>
-              <div style="height: 8px; background: var(--gray-200); border-radius: 4px; overflow: hidden;">
-                <div style="width: 30%; height: 100%; background: var(--primary-gradient); border-radius: 4px;"></div>
-              </div>
-            </div>
-            
-            <!-- 拍照上传 -->
-            <div style="padding: 0 20px 20px;">
-              <div style="background: var(--gray-50); border: 2px dashed var(--gray-300); border-radius: 16px; padding: 30px; text-align: center;">
-                <div style="font-size: 40px; margin-bottom: 12px;">📷</div>
-                <p style="font-size: 14px; color: var(--gray-600); font-weight: 500;">完成后拍照上传</p>
-                <p style="font-size: 12px; color: var(--gray-500); margin-top: 4px;">AI会自动批改哦~</p>
-                <button class="btn btn-outline btn-sm" style="margin-top: 16px;">
-                  <i class="fas fa-camera"></i> 拍照上传
-                </button>
+              <div class="task-arrow">
+                <i class="fa-solid fa-arrow-right"></i>
               </div>
             </div>
           </div>
           
-          <!-- AI老师页面 -->
-          <div id="page-ai-teacher" class="page-container hide-scrollbar" style="display: none;">
-            <div class="nav-bar">
-              <button class="nav-btn" onclick="showPage('home')"><i class="fas fa-chevron-left"></i></button>
-              <span class="nav-title">🎓 AI老师解读</span>
-              <button class="nav-btn"><i class="fas fa-share-nodes"></i></button>
-            </div>
-            
-            <!-- AI老师头像 -->
-            <div style="padding: 20px; text-align: center;">
-              <div style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, #FFE5DC 0%, #FFF0EB 100%); margin: 0 auto; display: flex; align-items: center; justify-content: center; font-size: 50px; box-shadow: 0 8px 24px rgba(255,107,53,0.2);">
-                👩‍🏫
+          <!-- 任务卡片2 -->
+          <div class="task-card" data-task="history">
+            <div class="task-card-header">
+              <div class="task-icon history">
+                <i class="fa-solid fa-landmark-dome"></i>
               </div>
-              <h2 style="font-size: 20px; font-weight: 700; color: var(--gray-800); margin-top: 12px;">小伴老师</h2>
-              <p style="font-size: 13px; color: var(--gray-500);">正在为你解读今天的作业...</p>
-            </div>
-            
-            <!-- 作业解读 -->
-            <div style="padding: 0 20px;">
-              <div style="background: white; border-radius: 20px; padding: 20px; box-shadow: var(--shadow-card); margin-bottom: 16px;">
-                <div style="display: flex; gap: 12px; align-items: flex-start;">
-                  <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--success-light); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">
-                    ✅
-                  </div>
-                  <div>
-                    <h3 style="font-size: 15px; font-weight: 600; color: var(--gray-800);">英语听写 - 表现优秀！</h3>
-                    <p style="font-size: 13px; color: var(--gray-600); margin-top: 8px; line-height: 1.6;">
-                      太棒了！10个单词你写对了9个，正确率高达90%！只有"beautiful"这个单词拼错了，记住它有"eau"这个组合哦，可以这样记忆：<span style="color: var(--primary);">"美丽的鹅鸭"</span>~
-                    </p>
-                    <div style="background: var(--info-light); border-radius: 12px; padding: 12px; margin-top: 12px;">
-                      <p style="font-size: 12px; color: var(--info);">
-                        💡 <strong>学习小技巧:</strong> 遇到长单词可以分音节记忆，beau-ti-ful，多读几遍就记住了！
-                      </p>
-                    </div>
-                  </div>
-                </div>
+              <div>
+                <div class="task-title">明朝的时候，郑和下西洋给人们带回来了哪些宝贝？</div>
+                <div class="task-category" style="color: var(--color-orange);">历史</div>
               </div>
-              
-              <div style="background: white; border-radius: 20px; padding: 20px; box-shadow: var(--shadow-card); margin-bottom: 16px;">
-                <div style="display: flex; gap: 12px; align-items: flex-start;">
-                  <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--warning-light); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">
-                    📖
-                  </div>
-                  <div>
-                    <h3 style="font-size: 15px; font-weight: 600; color: var(--gray-800);">古诗背诵 - 还需加油</h3>
-                    <p style="font-size: 13px; color: var(--gray-600); margin-top: 8px; line-height: 1.6;">
-                      《静夜思》已经能背出前两句了，后面两句还要继续练习哦！这首诗表达的是诗人李白在月夜思念家乡的情感，你可以想象一下...
-                    </p>
-                    <div style="background: var(--gray-50); border-radius: 12px; padding: 12px; margin-top: 12px;">
-                      <p style="font-size: 13px; color: var(--gray-700); line-height: 1.8;">
-                        🌙 <strong>诗意理解:</strong><br>
-                        "举头望明月" - 抬起头看着天上的明月<br>
-                        "低头思故乡" - 低下头就想起了远方的家
-                      </p>
-                    </div>
-                  </div>
-                </div>
+              <div class="task-arrow">
+                <i class="fa-solid fa-arrow-right"></i>
               </div>
-              
-              <!-- 今日总结 -->
-              <div style="background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%); border-radius: 20px; padding: 20px; margin-bottom: 16px;">
-                <h3 style="font-size: 16px; font-weight: 700; color: var(--gray-800); margin-bottom: 16px;">📊 今日学习总结</h3>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
-                  <div style="text-align: center;">
-                    <div style="font-size: 24px; font-weight: 700; color: var(--primary);">47</div>
-                    <div style="font-size: 11px; color: var(--gray-500); margin-top: 2px;">学习分钟</div>
-                  </div>
-                  <div style="text-align: center;">
-                    <div style="font-size: 24px; font-weight: 700; color: var(--success);">92%</div>
-                    <div style="font-size: 11px; color: var(--gray-500); margin-top: 2px;">专注度</div>
-                  </div>
-                  <div style="text-align: center;">
-                    <div style="font-size: 24px; font-weight: 700; color: var(--accent-gold);">+35</div>
-                    <div style="font-size: 11px; color: var(--gray-500); margin-top: 2px;">获得积分</div>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- 鼓励语 -->
-              <div style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); border-radius: 20px; padding: 20px; text-align: center; color: white;">
-                <p style="font-size: 28px; margin-bottom: 12px;">🌟</p>
-                <p style="font-size: 16px; font-weight: 600;">今天的你真棒！</p>
-                <p style="font-size: 13px; opacity: 0.9; margin-top: 8px;">继续保持，你已经连续学习5天了，距离"学习小达人"勋章只差2天！</p>
-              </div>
-            </div>
-            
-            <div style="height: 20px;"></div>
-          </div>
-          
-          <!-- 成就中心页面 -->
-          <div id="page-achievements" class="page-container hide-scrollbar" style="display: none;">
-            <div class="nav-bar">
-              <button class="nav-btn" onclick="showPage('home')"><i class="fas fa-chevron-left"></i></button>
-              <span class="nav-title">🏆 成就中心</span>
-              <button class="nav-btn"><i class="fas fa-info-circle"></i></button>
-            </div>
-            
-            <!-- 等级卡片 -->
-            <div style="padding: 0 20px 20px;">
-              <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border-radius: 24px; padding: 24px; color: white; position: relative; overflow: hidden;">
-                <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(255,217,61,0.3) 0%, transparent 70%);"></div>
-                
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                  <div>
-                    <p style="font-size: 13px; opacity: 0.8;">当前等级</p>
-                    <h2 style="font-size: 28px; font-weight: 700; margin-top: 4px;">精英探员</h2>
-                    <p style="font-size: 13px; opacity: 0.7; margin-top: 8px;">Lv.8 · 距离下一级还需 125 积分</p>
-                  </div>
-                  <div style="width: 70px; height: 70px; background: linear-gradient(135deg, #FFD93D 0%, #FFA500 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; box-shadow: 0 4px 20px rgba(255,217,61,0.4);">
-                    🕵️
-                  </div>
-                </div>
-                
-                <div style="margin-top: 20px;">
-                  <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px;">
-                    <span>经验值</span>
-                    <span>875 / 1000</span>
-                  </div>
-                  <div style="height: 8px; background: rgba(255,255,255,0.2); border-radius: 4px; overflow: hidden;">
-                    <div style="width: 87.5%; height: 100%; background: linear-gradient(90deg, #FFD93D 0%, #FFA500 100%); border-radius: 4px;"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- 统计数据 -->
-            <div style="padding: 0 20px 20px;">
-              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
-                <div style="background: white; border-radius: 16px; padding: 16px; text-align: center; box-shadow: var(--shadow-sm);">
-                  <div style="font-size: 24px; font-weight: 700; color: var(--primary);">125</div>
-                  <div style="font-size: 11px; color: var(--gray-500); margin-top: 4px;">总积分</div>
-                </div>
-                <div style="background: white; border-radius: 16px; padding: 16px; text-align: center; box-shadow: var(--shadow-sm);">
-                  <div style="font-size: 24px; font-weight: 700; color: var(--success);">23</div>
-                  <div style="font-size: 11px; color: var(--gray-500); margin-top: 4px;">完成任务</div>
-                </div>
-                <div style="background: white; border-radius: 16px; padding: 16px; text-align: center; box-shadow: var(--shadow-sm);">
-                  <div style="font-size: 24px; font-weight: 700; color: var(--secondary);">5</div>
-                  <div style="font-size: 11px; color: var(--gray-500); margin-top: 4px;">连续天数</div>
-                </div>
-                <div style="background: white; border-radius: 16px; padding: 16px; text-align: center; box-shadow: var(--shadow-sm);">
-                  <div style="font-size: 24px; font-weight: 700; color: var(--accent-gold);">7</div>
-                  <div style="font-size: 11px; color: var(--gray-500); margin-top: 4px;">获得勋章</div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- 勋章展示 -->
-            <div style="padding: 0 20px;">
-              <h3 style="font-size: 16px; font-weight: 700; color: var(--gray-800); margin-bottom: 16px;">🎖️ 我的勋章</h3>
-              
-              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
-                <div style="text-align: center;">
-                  <div style="width: 60px; height: 60px; margin: 0 auto; border-radius: 50%; background: linear-gradient(135deg, #FFD93D 0%, #FFA500 100%); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 4px 12px rgba(255,217,61,0.4);">
-                    🔥
-                  </div>
-                  <p style="font-size: 11px; color: var(--gray-700); margin-top: 8px; font-weight: 500;">连续达人</p>
-                </div>
-                <div style="text-align: center;">
-                  <div style="width: 60px; height: 60px; margin: 0 auto; border-radius: 50%; background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 4px 12px rgba(78,205,196,0.4);">
-                    🎯
-                  </div>
-                  <p style="font-size: 11px; color: var(--gray-700); margin-top: 8px; font-weight: 500;">专注之星</p>
-                </div>
-                <div style="text-align: center;">
-                  <div style="width: 60px; height: 60px; margin: 0 auto; border-radius: 50%; background: linear-gradient(135deg, #FF6B35 0%, #FF8F66 100%); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 4px 12px rgba(255,107,53,0.4);">
-                    📖
-                  </div>
-                  <p style="font-size: 11px; color: var(--gray-700); margin-top: 8px; font-weight: 500;">背诵高手</p>
-                </div>
-                <div style="text-align: center;">
-                  <div style="width: 60px; height: 60px; margin: 0 auto; border-radius: 50%; background: linear-gradient(135deg, #A855F7 0%, #7C3AED 100%); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 4px 12px rgba(168,85,247,0.4);">
-                    ⭐
-                  </div>
-                  <p style="font-size: 11px; color: var(--gray-700); margin-top: 8px; font-weight: 500;">新手起航</p>
-                </div>
-                <div style="text-align: center;">
-                  <div style="width: 60px; height: 60px; margin: 0 auto; border-radius: 50%; background: linear-gradient(135deg, #10B981 0%, #059669 100%); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 4px 12px rgba(16,185,129,0.4);">
-                    ✍️
-                  </div>
-                  <p style="font-size: 11px; color: var(--gray-700); margin-top: 8px; font-weight: 500;">听写能手</p>
-                </div>
-                <div style="text-align: center;">
-                  <div style="width: 60px; height: 60px; margin: 0 auto; border-radius: 50%; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 4px 12px rgba(59,130,246,0.4);">
-                    📚
-                  </div>
-                  <p style="font-size: 11px; color: var(--gray-700); margin-top: 8px; font-weight: 500;">阅读爱好</p>
-                </div>
-                <div style="text-align: center;">
-                  <div style="width: 60px; height: 60px; margin: 0 auto; border-radius: 50%; background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 4px 12px rgba(245,158,11,0.4);">
-                    🌟
-                  </div>
-                  <p style="font-size: 11px; color: var(--gray-700); margin-top: 8px; font-weight: 500;">周冠军</p>
-                </div>
-                <div style="text-align: center;">
-                  <div style="width: 60px; height: 60px; margin: 0 auto; border-radius: 50%; background: var(--gray-200); display: flex; align-items: center; justify-content: center; font-size: 28px; opacity: 0.5;">
-                    🔒
-                  </div>
-                  <p style="font-size: 11px; color: var(--gray-400); margin-top: 8px;">待解锁</p>
-                </div>
-              </div>
-            </div>
-            
-            <div style="height: 20px;"></div>
-          </div>
-          
-          <!-- 家长端页面 -->
-          <div id="page-parent" class="page-container hide-scrollbar" style="display: none; background: linear-gradient(180deg, #F0F9FF 0%, #FFFFFF 30%, #FFF7ED 100%);">
-            <div class="nav-bar">
-              <button class="nav-btn" onclick="showPage('home')"><i class="fas fa-chevron-left"></i></button>
-              <span class="nav-title">👨‍👩‍👦 家长控制台</span>
-              <button class="nav-btn"><i class="fas fa-bell"></i></button>
-            </div>
-            
-            <!-- 孩子状态 -->
-            <div style="padding: 0 20px 20px;">
-              <div style="background: white; border-radius: 20px; padding: 20px; box-shadow: var(--shadow-card);">
-                <div style="display: flex; gap: 16px; align-items: center;">
-                  <div style="width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #FFE5DC 0%, #FFF0EB 100%); display: flex; align-items: center; justify-content: center; font-size: 32px;">
-                    👦
-                  </div>
-                  <div style="flex: 1;">
-                    <h3 style="font-size: 18px; font-weight: 700; color: var(--gray-800);">小明</h3>
-                    <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
-                      <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--success); animation: focusPulse 1.5s infinite;"></span>
-                      <span style="font-size: 13px; color: var(--success);">正在学习中</span>
-                    </div>
-                  </div>
-                  <button style="padding: 10px 16px; background: var(--primary); border: none; border-radius: 20px; color: white; font-size: 13px; font-weight: 600; cursor: pointer;">
-                    <i class="fas fa-eye"></i> 查看
-                  </button>
-                </div>
-                
-                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--gray-100); display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; text-align: center;">
-                  <div>
-                    <div style="font-size: 20px; font-weight: 700; color: var(--gray-800);">47分钟</div>
-                    <div style="font-size: 11px; color: var(--gray-500); margin-top: 2px;">今日学习</div>
-                  </div>
-                  <div>
-                    <div style="font-size: 20px; font-weight: 700; color: var(--success);">92%</div>
-                    <div style="font-size: 11px; color: var(--gray-500); margin-top: 2px;">专注度</div>
-                  </div>
-                  <div>
-                    <div style="font-size: 20px; font-weight: 700; color: var(--primary);">3/6</div>
-                    <div style="font-size: 11px; color: var(--gray-500); margin-top: 2px;">完成任务</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- 实时专注度 -->
-            <div style="padding: 0 20px 20px;">
-              <div style="background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%); border-radius: 20px; padding: 20px; color: white;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                  <h3 style="font-size: 15px; font-weight: 600;">📊 实时专注度监控</h3>
-                  <span style="font-size: 12px; opacity: 0.9;">每5秒更新</span>
-                </div>
-                
-                <div style="display: flex; align-items: center; gap: 16px;">
-                  <div style="width: 80px; height: 80px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; position: relative;">
-                    <svg width="80" height="80" style="position: absolute; transform: rotate(-90deg);">
-                      <circle cx="40" cy="40" r="35" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="6"/>
-                      <circle cx="40" cy="40" r="35" fill="none" stroke="white" stroke-width="6" stroke-linecap="round" stroke-dasharray="220" stroke-dashoffset="17.6"/>
-                    </svg>
-                    <span style="font-size: 20px; font-weight: 700;">92%</span>
-                  </div>
-                  <div>
-                    <p style="font-size: 14px; opacity: 0.9;">当前状态</p>
-                    <p style="font-size: 18px; font-weight: 700; margin-top: 4px;">高度专注 🎯</p>
-                    <p style="font-size: 12px; opacity: 0.8; margin-top: 4px;">已持续专注 23 分钟</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- 学习计划 -->
-            <div style="padding: 0 20px 20px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <h3 style="font-size: 16px; font-weight: 700; color: var(--gray-800);">📅 今日学习计划</h3>
-                <button style="padding: 6px 12px; background: var(--primary-light); border: none; border-radius: 12px; color: white; font-size: 12px; cursor: pointer;">
-                  <i class="fas fa-plus"></i> 添加
-                </button>
-              </div>
-              
-              <div style="background: white; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-sm);">
-                <div style="display: flex; align-items: center; padding: 16px; border-bottom: 1px solid var(--gray-100);">
-                  <div style="width: 40px; height: 40px; border-radius: 10px; background: var(--success-light); display: flex; align-items: center; justify-content: center; font-size: 18px; margin-right: 12px;">✅</div>
-                  <div style="flex: 1;">
-                    <p style="font-size: 14px; font-weight: 500; color: var(--gray-500); text-decoration: line-through;">英语单词听写</p>
-                    <p style="font-size: 12px; color: var(--success);">已完成 · 正确率90%</p>
-                  </div>
-                  <span style="font-size: 12px; color: var(--gray-400);">14:00</span>
-                </div>
-                
-                <div style="display: flex; align-items: center; padding: 16px; border-bottom: 1px solid var(--gray-100); background: var(--primary-light); background: rgba(255,107,53,0.05);">
-                  <div style="width: 40px; height: 40px; border-radius: 10px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; font-size: 18px; margin-right: 12px;">📖</div>
-                  <div style="flex: 1;">
-                    <p style="font-size: 14px; font-weight: 600; color: var(--gray-800);">古诗背诵</p>
-                    <p style="font-size: 12px; color: var(--primary);">进行中 · 60%</p>
-                  </div>
-                  <span style="font-size: 12px; color: var(--gray-400);">16:00</span>
-                </div>
-                
-                <div style="display: flex; align-items: center; padding: 16px; border-bottom: 1px solid var(--gray-100);">
-                  <div style="width: 40px; height: 40px; border-radius: 10px; background: var(--gray-100); display: flex; align-items: center; justify-content: center; font-size: 18px; margin-right: 12px;">➕</div>
-                  <div style="flex: 1;">
-                    <p style="font-size: 14px; font-weight: 500; color: var(--gray-700);">数学口算练习</p>
-                    <p style="font-size: 12px; color: var(--gray-500);">待开始</p>
-                  </div>
-                  <span style="font-size: 12px; color: var(--gray-400);">18:00</span>
-                </div>
-                
-                <div style="display: flex; align-items: center; padding: 16px;">
-                  <div style="width: 40px; height: 40px; border-radius: 10px; background: var(--gray-100); display: flex; align-items: center; justify-content: center; font-size: 18px; margin-right: 12px;">📚</div>
-                  <div style="flex: 1;">
-                    <p style="font-size: 14px; font-weight: 500; color: var(--gray-700);">课外阅读</p>
-                    <p style="font-size: 12px; color: var(--gray-500);">待开始</p>
-                  </div>
-                  <span style="font-size: 12px; color: var(--gray-400);">19:30</span>
-                </div>
-              </div>
-            </div>
-            
-            <!-- 周报告入口 -->
-            <div style="padding: 0 20px 20px;">
-              <div style="background: linear-gradient(135deg, #A855F7 0%, #7C3AED 100%); border-radius: 16px; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; color: white; cursor: pointer;">
-                <div>
-                  <h4 style="font-size: 15px; font-weight: 600;">📈 查看本周学习报告</h4>
-                  <p style="font-size: 12px; opacity: 0.9; margin-top: 4px;">详细分析学习表现和建议</p>
-                </div>
-                <i class="fas fa-chevron-right" style="opacity: 0.8;"></i>
-              </div>
-            </div>
-            
-            <div style="height: 20px;"></div>
-          </div>
-          
-          <!-- 底部标签栏 -->
-          <div class="tab-bar" id="main-tab-bar">
-            <div class="tab-item active" onclick="showPage('home')">
-              <div class="tab-icon"><i class="fas fa-home"></i></div>
-              <span class="tab-label">首页</span>
-            </div>
-            <div class="tab-item" onclick="showPage('tasks')">
-              <div class="tab-icon"><i class="fas fa-list-check"></i></div>
-              <span class="tab-label">任务</span>
-            </div>
-            <div class="tab-item" onclick="showPage('video')" style="position: relative;">
-              <div style="position: absolute; top: -20px; left: 50%; transform: translateX(-50%); width: 56px; height: 56px; background: linear-gradient(135deg, #FF6B35 0%, #FF8F66 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(255,107,53,0.4);">
-                <i class="fas fa-video" style="color: white; font-size: 20px;"></i>
-              </div>
-              <span class="tab-label" style="margin-top: 36px;">陪伴</span>
-            </div>
-            <div class="tab-item" onclick="showPage('achievements')">
-              <div class="tab-icon"><i class="fas fa-trophy"></i></div>
-              <span class="tab-label">成就</span>
-            </div>
-            <div class="tab-item" onclick="showPage('parent')">
-              <div class="tab-icon"><i class="fas fa-user"></i></div>
-              <span class="tab-label">我的</span>
             </div>
           </div>
           
-          <!-- Home Indicator (for pages with tab bar) -->
-          <div class="home-indicator" id="home-indicator"></div>
+          <!-- 任务卡片3 -->
+          <div class="task-card" data-task="science">
+            <div class="task-card-header">
+              <div class="task-icon science">
+                <i class="fa-solid fa-rocket"></i>
+              </div>
+              <div>
+                <div class="task-title">空间站里的宇航员是怎么睡觉的？</div>
+                <div class="task-category" style="color: var(--color-blue);">天文地理</div>
+              </div>
+              <div class="task-arrow">
+                <i class="fa-solid fa-arrow-right"></i>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="phone-label">小伴学 · 主界面</div>
+      
+      <!-- 主操作按钮 -->
+      <div class="action-section">
+        <button class="action-btn" id="btn-start-lesson">
+          <span class="free-tag">🎉 限时免费</span>
+          <i class="fa-solid fa-camera"></i>
+          <span>讲题目</span>
+        </button>
+        <div class="input-hint">
+          <i class="fa-regular fa-keyboard"></i>
+          <span>输入问题</span>
+        </div>
+      </div>
+      
+      <!-- AI标识 -->
+      <div class="ai-badge">内容由 AI 生成</div>
     </div>
+    
+    <!-- ==========================================
+         视频通话页面
+         ========================================== -->
+    <div class="page page-video" id="page-video">
+      <!-- 顶部栏 -->
+      <div class="video-header">
+        <button class="menu-btn">
+          <i class="fa-solid fa-ellipsis"></i>
+        </button>
+        <button class="scenario-btn">
+          <i class="fa-solid fa-grip"></i>
+          <span>选择情景</span>
+        </button>
+        <button class="font-btn">
+          <span style="font-family: serif;">字</span>
+        </button>
+      </div>
+      
+      <!-- 用户自己的视频窗口 -->
+      <div class="self-video">
+        <video id="user-video" autoplay muted playsinline></video>
+        <div class="self-video-placeholder" id="video-placeholder">
+          <i class="fa-solid fa-video-slash"></i>
+        </div>
+      </div>
+      
+      <!-- 虚拟人大头像 -->
+      <div class="video-avatar-section">
+        <div class="video-avatar">
+          <img src="assets/images/avatar-teacher.svg" alt="AI老师">
+        </div>
+        
+        <!-- 状态指示器 -->
+        <div class="status-indicator">
+          <span class="status-dot active"></span>
+          <span class="status-dot"></span>
+          <span class="status-dot"></span>
+        </div>
+        <p class="status-text">你可以开始说话</p>
+      </div>
+      
+      <!-- 提示区域 -->
+      <p class="prompt-area">请说话</p>
+      
+      <!-- 视频控制栏 -->
+      <div class="video-controls">
+        <button class="video-control-btn" id="btn-mic">
+          <i class="fa-solid fa-microphone"></i>
+        </button>
+        <button class="video-control-btn" id="btn-upload">
+          <i class="fa-solid fa-arrow-up-from-bracket"></i>
+        </button>
+        <button class="video-control-btn active" id="btn-camera">
+          <i class="fa-solid fa-video"></i>
+        </button>
+        <button class="video-control-btn end-call" id="btn-end-call">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      
+      <!-- AI标识 -->
+      <div class="ai-badge" style="position: fixed; bottom: 120px; left: 0; right: 0;">内容由 AI 生成</div>
+    </div>
+    
+    <!-- ==========================================
+         豆包老师讲解页面
+         ========================================== -->
+    <div class="page page-teacher" id="page-teacher">
+      <!-- 顶部栏 -->
+      <div class="teacher-header">
+        <button class="back-btn" id="btn-back-teacher">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <h1 class="teacher-title">豆包老师</h1>
+        <div class="teacher-actions">
+          <button><i class="fa-regular fa-image"></i></button>
+          <button><i class="fa-solid fa-sliders"></i></button>
+        </div>
+      </div>
+      
+      <!-- 问题卡片 -->
+      <div class="question-card">
+        <div class="question-label">问题：</div>
+        <div class="question-text" id="question-text">明朝的郑和下西洋，带回来哪些宝贝？</div>
+      </div>
+      
+      <!-- 答案展示 -->
+      <div class="answer-card" id="answer-container">
+        <div class="answer-section-title">
+          <span style="color: var(--color-brand-purple);">一、</span>
+          <span style="color: var(--color-brand-purple);">珍奇异兽</span>
+          <span>🦁</span>
+        </div>
+        <div class="answer-content">
+          <div class="answer-text">
+            这其中最出名的就是长颈鹿。当时非洲的索马里语里，长颈鹿被称为"Giri"，发音和我们神话传说中的"麒麟"很像。所以它一被带回中国，就被当作是吉祥的瑞兽"麒麟"了。
+          </div>
+          <img src="assets/images/giraffe.jpg" alt="长颈鹿" class="answer-image">
+        </div>
+      </div>
+      
+      <!-- 底部对话区 -->
+      <div class="chat-footer">
+        <p class="realtime-text" id="realtime-text">你看，就是这个我们</p>
+        <div class="chat-controls">
+          <button class="pause-btn">
+            <i class="fa-solid fa-pause"></i>
+          </button>
+          <button class="talk-btn">按住说话</button>
+          <button class="keyboard-btn">
+            <i class="fa-regular fa-keyboard"></i>
+          </button>
+        </div>
+        <div class="ai-badge">内容由AI生成</div>
+      </div>
+    </div>
+    
+    <!-- ==========================================
+         任务看板页面
+         ========================================== -->
+    <div class="page page-tasks" id="page-tasks">
+      <!-- 顶部 -->
+      <div class="tasks-header">
+        <h1 class="tasks-title">🎯 特工任务</h1>
+        <p class="tasks-subtitle">完成今日任务，获得星星奖励！</p>
+      </div>
+      
+      <!-- 今日进度 -->
+      <div class="progress-section">
+        <div class="progress-card">
+          <div class="progress-header">
+            <span class="progress-title">今日进度</span>
+            <span class="progress-count">3/8 已完成</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: 37.5%;"></div>
+          </div>
+          <div class="progress-stats">
+            <div class="stat-item">
+              <div class="stat-value">45</div>
+              <div class="stat-label">学习分钟</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">⭐ 120</div>
+              <div class="stat-label">获得星星</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">🔥 7</div>
+              <div class="stat-label">连续天数</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 任务列表 -->
+      <div class="task-list">
+        <div class="task-list-header">
+          <h2 class="task-list-title">
+            <i class="fa-solid fa-list-check"></i>
+            待完成任务
+          </h2>
+        </div>
+        
+        <!-- 任务项 -->
+        <div class="task-item" data-id="1">
+          <div class="task-checkbox">
+            <i class="fa-solid fa-check"></i>
+          </div>
+          <div class="task-info">
+            <div class="task-name">语文 - 背诵《静夜思》</div>
+            <div class="task-meta">
+              <span class="task-reward"><i class="fa-solid fa-star"></i> +20</span>
+              <span class="task-difficulty">
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+              </span>
+              <span>预计5分钟</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="task-item" data-id="2">
+          <div class="task-checkbox">
+            <i class="fa-solid fa-check"></i>
+          </div>
+          <div class="task-info">
+            <div class="task-name">数学 - 完成口算练习</div>
+            <div class="task-meta">
+              <span class="task-reward"><i class="fa-solid fa-star"></i> +30</span>
+              <span class="task-difficulty">
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+              </span>
+              <span>预计10分钟</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="task-item" data-id="3">
+          <div class="task-checkbox">
+            <i class="fa-solid fa-check"></i>
+          </div>
+          <div class="task-info">
+            <div class="task-name">英语 - 听写单词</div>
+            <div class="task-meta">
+              <span class="task-reward"><i class="fa-solid fa-star"></i> +25</span>
+              <span class="task-difficulty">
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+              </span>
+              <span>预计8分钟</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="task-item completed" data-id="4">
+          <div class="task-checkbox">
+            <i class="fa-solid fa-check"></i>
+          </div>
+          <div class="task-info">
+            <div class="task-name">阅读 - 看书20分钟</div>
+            <div class="task-meta">
+              <span class="task-reward"><i class="fa-solid fa-star"></i> +15</span>
+              <span>已完成 ✓</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- ==========================================
+         家长监控页面
+         ========================================== -->
+    <div class="page page-parent" id="page-parent">
+      <!-- 顶部 -->
+      <div class="parent-header">
+        <h1 class="parent-title">👨‍👩‍👧 家长中心</h1>
+      </div>
+      
+      <!-- 孩子信息 -->
+      <div class="child-info">
+        <div class="child-avatar">
+          <img src="assets/images/child-avatar.svg" alt="孩子头像" style="width: 100%; height: 100%; border-radius: 50%;">
+        </div>
+        <div class="child-details">
+          <h3>小明同学</h3>
+          <p>三年级 · 今日已学习45分钟</p>
+        </div>
+        <div class="status-online">
+          学习中
+        </div>
+      </div>
+      
+      <!-- 专注度图表 -->
+      <div class="focus-section">
+        <div class="focus-card">
+          <div class="focus-header">
+            <div>
+              <div class="card-subtitle">实时专注度</div>
+              <div class="focus-score">87<span>%</span></div>
+            </div>
+            <button class="btn btn-secondary" style="font-size: 14px; padding: 8px 16px;">
+              <i class="fa-solid fa-video"></i>
+              实时查看
+            </button>
+          </div>
+          <div class="focus-chart">
+            <div class="focus-chart-line"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 今日报告 -->
+      <div class="report-section">
+        <div class="report-card">
+          <h3 class="report-title">📊 今日学习报告</h3>
+          <div class="report-grid">
+            <div class="report-item">
+              <div class="report-item-icon">⏱️</div>
+              <div class="report-item-value">45分钟</div>
+              <div class="report-item-label">学习时长</div>
+            </div>
+            <div class="report-item">
+              <div class="report-item-icon">✅</div>
+              <div class="report-item-value">3/8</div>
+              <div class="report-item-label">完成任务</div>
+            </div>
+            <div class="report-item">
+              <div class="report-item-icon">🎯</div>
+              <div class="report-item-value">87%</div>
+              <div class="report-item-label">平均专注</div>
+            </div>
+            <div class="report-item">
+              <div class="report-item-icon">⭐</div>
+              <div class="report-item-value">120</div>
+              <div class="report-item-label">获得星星</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 学习计划 -->
+      <div class="report-section">
+        <div class="report-card">
+          <div class="card-header">
+            <h3 class="report-title">📅 学习计划</h3>
+            <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;">
+              <i class="fa-solid fa-plus"></i>
+              添加
+            </button>
+          </div>
+          <div style="margin-top: 12px;">
+            <div class="task-item" style="margin: 8px 0;">
+              <div class="task-checkbox" style="background: var(--btn-gradient-primary); border: none;">
+                <i class="fa-solid fa-check" style="color: white;"></i>
+              </div>
+              <div class="task-info">
+                <div class="task-name">16:00 - 语文作业</div>
+                <div class="task-meta">预计30分钟</div>
+              </div>
+            </div>
+            <div class="task-item" style="margin: 8px 0;">
+              <div class="task-checkbox"></div>
+              <div class="task-info">
+                <div class="task-name">17:00 - 数学练习</div>
+                <div class="task-meta">预计20分钟</div>
+              </div>
+            </div>
+            <div class="task-item" style="margin: 8px 0;">
+              <div class="task-checkbox"></div>
+              <div class="task-info">
+                <div class="task-name">18:00 - 英语听写</div>
+                <div class="task-meta">预计15分钟</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- ==========================================
+         个人中心页面
+         ========================================== -->
+    <div class="page page-profile" id="page-profile">
+      <!-- 个人信息头部 -->
+      <div class="profile-header">
+        <div class="profile-avatar">
+          👧
+        </div>
+        <h2 class="profile-name">小明同学</h2>
+        <div class="profile-level">
+          <span class="level-badge">Lv.7</span>
+          <span>学习小达人</span>
+        </div>
+      </div>
+      
+      <!-- 成就展示 -->
+      <div class="achievements-section">
+        <div class="achievements-card">
+          <h3 class="achievements-title">
+            <i class="fa-solid fa-trophy"></i>
+            我的成就
+          </h3>
+          <div class="achievements-grid">
+            <div class="achievement-item">
+              <div class="achievement-icon">🌟</div>
+              <span class="achievement-name">初学者</span>
+            </div>
+            <div class="achievement-item">
+              <div class="achievement-icon">🔥</div>
+              <span class="achievement-name">7日连续</span>
+            </div>
+            <div class="achievement-item">
+              <div class="achievement-icon">📚</div>
+              <span class="achievement-name">阅读达人</span>
+            </div>
+            <div class="achievement-item">
+              <div class="achievement-icon locked">🏆</div>
+              <span class="achievement-name">未解锁</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 设置菜单 -->
+      <div class="settings-section">
+        <div class="settings-group">
+          <div class="settings-item">
+            <div class="settings-icon blue">
+              <i class="fa-solid fa-user"></i>
+            </div>
+            <span class="settings-label">个人资料</span>
+            <i class="fa-solid fa-chevron-right settings-arrow"></i>
+          </div>
+          <div class="settings-item">
+            <div class="settings-icon green">
+              <i class="fa-solid fa-chart-line"></i>
+            </div>
+            <span class="settings-label">学习统计</span>
+            <i class="fa-solid fa-chevron-right settings-arrow"></i>
+          </div>
+          <div class="settings-item">
+            <div class="settings-icon orange">
+              <i class="fa-solid fa-bell"></i>
+            </div>
+            <span class="settings-label">提醒设置</span>
+            <i class="fa-solid fa-chevron-right settings-arrow"></i>
+          </div>
+          <div class="settings-item">
+            <div class="settings-icon purple">
+              <i class="fa-solid fa-palette"></i>
+            </div>
+            <span class="settings-label">主题外观</span>
+            <i class="fa-solid fa-chevron-right settings-arrow"></i>
+          </div>
+        </div>
+        
+        <div class="settings-group" style="margin-top: 16px;">
+          <div class="settings-item">
+            <div class="settings-icon red">
+              <i class="fa-solid fa-crown"></i>
+            </div>
+            <span class="settings-label">升级会员</span>
+            <span class="tag tag-vip" style="margin-left: auto; margin-right: 8px;">VIP</span>
+            <i class="fa-solid fa-chevron-right settings-arrow"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- ==========================================
+         底部Tab栏
+         ========================================== -->
+    <nav class="tab-bar">
+      <button class="tab-item active" data-page="home">
+        <i class="fa-solid fa-book-open"></i>
+        <span>首页</span>
+      </button>
+      <button class="tab-item" data-page="teacher">
+        <i class="fa-solid fa-chalkboard-user"></i>
+        <span>豆包老师</span>
+      </button>
+      <button class="tab-item primary" data-page="video">
+        <div class="tab-icon-wrapper">
+          <i class="fa-solid fa-video"></i>
+        </div>
+      </button>
+      <button class="tab-item" data-page="tasks">
+        <i class="fa-solid fa-list-check"></i>
+        <span>任务</span>
+      </button>
+      <button class="tab-item" data-page="profile">
+        <i class="fa-solid fa-user"></i>
+        <span>我的</span>
+      </button>
+    </nav>
+    
   </div>
   
-  <script>
-    // 页面切换函数
-    function showPage(pageName) {
-      // 隐藏所有页面
-      const pages = document.querySelectorAll('[id^="page-"]');
-      pages.forEach(page => {
-        page.style.display = 'none';
-      });
-      
-      // 显示目标页面
-      const targetPage = document.getElementById('page-' + pageName);
-      if (targetPage) {
-        targetPage.style.display = 'block';
-      }
-      
-      // 更新标签栏
-      const tabItems = document.querySelectorAll('.tab-item');
-      tabItems.forEach(item => item.classList.remove('active'));
-      
-      // 更新导航选择器
-      const navButtons = document.querySelectorAll('.nav-selector button');
-      navButtons.forEach(btn => btn.classList.remove('active'));
-      navButtons.forEach(btn => {
-        if (btn.textContent.toLowerCase().includes(getPageLabel(pageName).toLowerCase())) {
-          btn.classList.add('active');
-        }
-      });
-      
-      // 根据页面显示/隐藏标签栏和home indicator
-      const tabBar = document.getElementById('main-tab-bar');
-      const homeIndicator = document.getElementById('home-indicator');
-      
-      if (pageName === 'video') {
-        tabBar.style.display = 'none';
-        homeIndicator.style.display = 'none';
-      } else {
-        tabBar.style.display = 'flex';
-        homeIndicator.style.display = 'block';
-        
-        // 更新对应的标签激活状态
-        const tabMap = {
-          'home': 0,
-          'tasks': 1,
-          'achievements': 3,
-          'parent': 4
-        };
-        if (tabMap[pageName] !== undefined) {
-          tabItems[tabMap[pageName]].classList.add('active');
-        }
-      }
-    }
-    
-    function getPageLabel(pageName) {
-      const labels = {
-        'home': '首页',
-        'tasks': '任务',
-        'video': '陪伴',
-        'recite': '背诵',
-        'dictation': '听写',
-        'ai-teacher': 'AI老师',
-        'achievements': '成就',
-        'parent': '家长'
-      };
-      return labels[pageName] || pageName;
-    }
-    
-    // 初始化
-    document.addEventListener('DOMContentLoaded', function() {
-      showPage('home');
-    });
-  </script>
+  <!-- JavaScript -->
+  <script src="js/app.js"></script>
 </body>
 </html>
 

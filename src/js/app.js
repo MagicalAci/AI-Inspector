@@ -1,16 +1,30 @@
 /**
- * AI督学 - 主应用程序 v2
- * 深度优化版
+ * AI督学 - 主应用程序 v3
+ * 特工系统优化版
  */
+
+// 特工等级配置
+const AGENT_LEVELS = [
+  { name: '见习特工', minPoints: 0, icon: '🎖️' },
+  { name: '初级特工', minPoints: 100, icon: '🥉' },
+  { name: '中级特工', minPoints: 300, icon: '🥈' },
+  { name: '高级特工', minPoints: 600, icon: '🥇' },
+  { name: '精英特工', minPoints: 1000, icon: '🏅' },
+  { name: '王牌特工', minPoints: 2000, icon: '🎖️' },
+  { name: '传奇特工', minPoints: 5000, icon: '👑' }
+];
 
 // 应用状态
 const AppState = {
   currentPage: 'home',
   user: {
     name: '小明同学',
-    level: 5,
+    level: 0,
+    levelName: '见习特工',
     balance: 0,
     stars: 0,
+    totalMissions: 0,
+    totalStudyTime: 0,
     streakDays: 0
   },
   tasks: [],
@@ -28,26 +42,31 @@ const AppState = {
 // AI消息库
 const AI_MESSAGES = {
   greetings: [
-    '今天也要加油学习哦~',
+    '特工，准备好执行任务了吗？',
+    '今天要完成什么特工任务呀？',
     '小影老师在等你呢！',
-    '准备好开始特工任务了吗？',
-    '今天要完成什么学习任务呀？'
+    '欢迎回来，特工！'
+  ],
+  noTask: [
+    '先设置今日特工任务吧~',
+    '点击上方设置你的任务~',
+    '特工，该安排任务了！'
+  ],
+  hasTask: [
+    '任务已就绪，随时可以开始！',
+    '特工，任务等你来执行！',
+    '准备好了吗？开始吧！'
   ],
   encouragements: [
     '加油！你正在认真学习呢~',
     '真棒！保持专注！',
     '小影老师看到你很努力哦~',
-    '继续保持，你是最棒的！',
+    '继续保持，你是最棒的特工！',
     '学习使你变得更强大~'
-  ],
-  breaks: [
-    '眼睛累了吗？看看远处吧~',
-    '休息一下，喝口水~',
-    '活动活动手指吧~'
   ],
   completions: [
     '太棒了！任务完成！',
-    '你真是个小学霸！',
+    '你真是个优秀的特工！',
     '完美！继续下一个任务吧！'
   ]
 };
@@ -57,11 +76,83 @@ const DOM = {};
 
 // 初始化应用
 document.addEventListener('DOMContentLoaded', () => {
+  loadUserData();
   initDOM();
   initEventListeners();
-  updateHomeStats();
-  setRandomGreeting();
+  updateUI();
 });
+
+// 加载用户数据
+function loadUserData() {
+  const saved = localStorage.getItem('ai_study_user');
+  if (saved) {
+    try {
+      const data = JSON.parse(saved);
+      Object.assign(AppState.user, data);
+    } catch (e) {
+      console.log('Failed to load user data');
+    }
+  }
+  
+  const savedTasks = localStorage.getItem('ai_study_tasks');
+  if (savedTasks) {
+    try {
+      AppState.tasks = JSON.parse(savedTasks);
+    } catch (e) {
+      console.log('Failed to load tasks');
+    }
+  }
+  
+  // 计算等级
+  updateAgentLevel();
+}
+
+// 保存用户数据
+function saveUserData() {
+  localStorage.setItem('ai_study_user', JSON.stringify(AppState.user));
+  localStorage.setItem('ai_study_tasks', JSON.stringify(AppState.tasks));
+}
+
+// 更新特工等级
+function updateAgentLevel() {
+  const points = AppState.user.stars;
+  let levelIndex = 0;
+  
+  for (let i = AGENT_LEVELS.length - 1; i >= 0; i--) {
+    if (points >= AGENT_LEVELS[i].minPoints) {
+      levelIndex = i;
+      break;
+    }
+  }
+  
+  AppState.user.level = levelIndex;
+  AppState.user.levelName = AGENT_LEVELS[levelIndex].name;
+  
+  return levelIndex;
+}
+
+// 获取下一等级所需积分
+function getNextLevelPoints() {
+  const currentLevel = AppState.user.level;
+  if (currentLevel >= AGENT_LEVELS.length - 1) {
+    return 0;
+  }
+  return AGENT_LEVELS[currentLevel + 1].minPoints - AppState.user.stars;
+}
+
+// 获取等级进度百分比
+function getLevelProgress() {
+  const currentLevel = AppState.user.level;
+  if (currentLevel >= AGENT_LEVELS.length - 1) {
+    return 100;
+  }
+  
+  const currentMin = AGENT_LEVELS[currentLevel].minPoints;
+  const nextMin = AGENT_LEVELS[currentLevel + 1].minPoints;
+  const progress = ((AppState.user.stars - currentMin) / (nextMin - currentMin)) * 100;
+  
+  return Math.min(Math.max(progress, 0), 100);
+}
 
 // 缓存DOM元素
 function initDOM() {
@@ -83,14 +174,20 @@ function initDOM() {
   DOM.modalRecharge = document.getElementById('modal-recharge');
   
   // 首页元素
-  DOM.homeStats = {
-    tasks: document.getElementById('today-tasks'),
-    stars: document.getElementById('total-stars'),
-    streak: document.getElementById('streak-days')
-  };
-  
   DOM.avatarGreeting = document.getElementById('avatar-greeting');
-  DOM.taskCountBadge = document.getElementById('task-count-badge');
+  DOM.agentLevel = document.getElementById('agent-level');
+  DOM.todayTasks = document.getElementById('today-tasks');
+  DOM.totalStars = document.getElementById('total-stars');
+  DOM.streakDays = document.getElementById('streak-days');
+  DOM.levelProgress = document.getElementById('level-progress');
+  DOM.nextLevelPoints = document.getElementById('next-level-points');
+  
+  // 任务相关
+  DOM.pendingTasks = document.getElementById('pending-tasks');
+  DOM.pendingList = document.getElementById('pending-list');
+  DOM.noTaskHint = document.getElementById('no-task-hint');
+  DOM.btnStartMission = document.getElementById('btn-start-mission');
+  DOM.missionBtnText = document.getElementById('mission-btn-text');
   
   // 督学页面元素
   DOM.studyTimer = document.getElementById('study-time');
@@ -108,6 +205,12 @@ function initDOM() {
     focus: document.getElementById('complete-focus'),
     stars: document.getElementById('reward-stars')
   };
+  
+  // 侧边栏元素
+  DOM.sidebarTotalMissions = document.getElementById('sidebar-total-missions');
+  DOM.sidebarTotalTime = document.getElementById('sidebar-total-time');
+  DOM.sidebarStreak = document.getElementById('sidebar-streak');
+  DOM.agentLevelBadge = document.getElementById('agent-level-badge');
 }
 
 // 初始化事件监听
@@ -120,8 +223,7 @@ function initEventListeners() {
   document.getElementById('btn-photo-task')?.addEventListener('click', () => navigateTo('photo'));
   document.getElementById('btn-quick-task')?.addEventListener('click', () => navigateTo('quick'));
   document.getElementById('btn-start-mission')?.addEventListener('click', startMission);
-  document.getElementById('btn-start-study')?.addEventListener('click', handleStartStudy);
-  document.getElementById('btn-voice-task')?.addEventListener('click', handleVoiceTask);
+  document.getElementById('btn-edit-tasks')?.addEventListener('click', openEditTasks);
   
   // 返回按钮
   document.getElementById('btn-back-photo')?.addEventListener('click', () => navigateTo('home'));
@@ -138,7 +240,7 @@ function initEventListeners() {
   initDurationOptions();
   initSubjectOptions();
   initTaskTypeOptions();
-  document.getElementById('btn-start-quick')?.addEventListener('click', startQuickStudy);
+  document.getElementById('btn-start-quick')?.addEventListener('click', confirmQuickTasks);
   
   // 督学页面
   document.getElementById('btn-pause')?.addEventListener('click', togglePause);
@@ -149,7 +251,7 @@ function initEventListeners() {
   // 完成页面
   document.getElementById('btn-complete-home')?.addEventListener('click', () => {
     navigateTo('home');
-    updateHomeStats();
+    updateUI();
   });
   document.getElementById('btn-share')?.addEventListener('click', shareResult);
   
@@ -166,6 +268,153 @@ function initEventListeners() {
   
   // 弹窗overlay
   DOM.modalAddTask?.querySelector('.modal-overlay')?.addEventListener('click', closeAddTaskModal);
+}
+
+// 更新所有UI
+function updateUI() {
+  updateAgentLevel();
+  updateHomeUI();
+  updateSidebarUI();
+  updateTaskListUI();
+  updateMissionButton();
+}
+
+// 更新首页UI
+function updateHomeUI() {
+  // 特工等级
+  if (DOM.agentLevel) {
+    DOM.agentLevel.textContent = AppState.user.levelName;
+  }
+  
+  // 统计数据
+  if (DOM.todayTasks) {
+    DOM.todayTasks.textContent = AppState.tasks.length;
+  }
+  if (DOM.totalStars) {
+    DOM.totalStars.textContent = AppState.user.stars;
+  }
+  if (DOM.streakDays) {
+    DOM.streakDays.textContent = AppState.user.streakDays;
+  }
+  
+  // 等级进度
+  if (DOM.levelProgress) {
+    DOM.levelProgress.style.width = `${getLevelProgress()}%`;
+  }
+  if (DOM.nextLevelPoints) {
+    const nextPoints = getNextLevelPoints();
+    DOM.nextLevelPoints.textContent = nextPoints > 0 ? nextPoints : '已满级';
+  }
+  
+  // 问候语
+  updateGreeting();
+}
+
+// 更新问候语
+function updateGreeting() {
+  if (!DOM.avatarGreeting) return;
+  
+  let messages;
+  if (AppState.tasks.length === 0) {
+    messages = AI_MESSAGES.noTask;
+  } else {
+    messages = AI_MESSAGES.hasTask;
+  }
+  
+  const randomIndex = Math.floor(Math.random() * messages.length);
+  DOM.avatarGreeting.textContent = messages[randomIndex];
+}
+
+// 更新侧边栏UI
+function updateSidebarUI() {
+  if (DOM.sidebarTotalMissions) {
+    DOM.sidebarTotalMissions.textContent = AppState.user.totalMissions;
+  }
+  if (DOM.sidebarTotalTime) {
+    DOM.sidebarTotalTime.textContent = `${Math.floor(AppState.user.totalStudyTime / 60)}h`;
+  }
+  if (DOM.sidebarStreak) {
+    DOM.sidebarStreak.textContent = AppState.user.streakDays;
+  }
+  if (DOM.agentLevelBadge) {
+    const level = AGENT_LEVELS[AppState.user.level];
+    DOM.agentLevelBadge.textContent = `${level.icon} ${level.name}`;
+  }
+}
+
+// 更新任务列表UI
+function updateTaskListUI() {
+  if (AppState.tasks.length === 0) {
+    if (DOM.pendingTasks) DOM.pendingTasks.style.display = 'none';
+    if (DOM.noTaskHint) DOM.noTaskHint.style.display = 'block';
+  } else {
+    if (DOM.pendingTasks) DOM.pendingTasks.style.display = 'block';
+    if (DOM.noTaskHint) DOM.noTaskHint.style.display = 'none';
+    
+    if (DOM.pendingList) {
+      const subjectIcons = {
+        '语文': '📖',
+        '数学': '🔢',
+        '英语': '🔤',
+        '科学': '🔬',
+        '阅读': '📚',
+        '其他': '✏️'
+      };
+      
+      DOM.pendingList.innerHTML = AppState.tasks.slice(0, 3).map((task, index) => `
+        <div class="pending-item">
+          <span class="pending-item-icon">${subjectIcons[task.subject] || '📝'}</span>
+          <div class="pending-item-info">
+            <div class="pending-item-name">${task.name}</div>
+            <div class="pending-item-meta">${task.duration}分钟</div>
+          </div>
+          <button class="pending-item-remove" onclick="removeTask(${index})">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      `).join('');
+      
+      if (AppState.tasks.length > 3) {
+        DOM.pendingList.innerHTML += `
+          <div class="pending-item-more">
+            还有 ${AppState.tasks.length - 3} 个任务...
+          </div>
+        `;
+      }
+    }
+  }
+}
+
+// 更新开始任务按钮
+function updateMissionButton() {
+  if (!DOM.btnStartMission) return;
+  
+  if (AppState.tasks.length === 0) {
+    DOM.btnStartMission.disabled = true;
+    DOM.btnStartMission.classList.remove('ready');
+    if (DOM.missionBtnText) {
+      DOM.missionBtnText.textContent = '设置任务后开始';
+    }
+  } else {
+    DOM.btnStartMission.disabled = false;
+    DOM.btnStartMission.classList.add('ready');
+    if (DOM.missionBtnText) {
+      DOM.missionBtnText.textContent = `开始特工任务 (${AppState.tasks.length})`;
+    }
+  }
+}
+
+// 删除任务
+function removeTask(index) {
+  AppState.tasks.splice(index, 1);
+  saveUserData();
+  updateUI();
+}
+
+// 打开编辑任务
+function openEditTasks() {
+  // 可以扩展为完整的编辑页面
+  navigateTo('quick');
 }
 
 // 页面导航
@@ -192,23 +441,6 @@ function closeSidebar() {
   DOM.sidebar?.classList.remove('active');
 }
 
-// 更新首页统计
-function updateHomeStats() {
-  if (DOM.homeStats.tasks) DOM.homeStats.tasks.textContent = AppState.tasks.length;
-  if (DOM.homeStats.stars) DOM.homeStats.stars.textContent = AppState.user.stars;
-  if (DOM.homeStats.streak) DOM.homeStats.streak.textContent = AppState.user.streakDays;
-  if (DOM.taskCountBadge) DOM.taskCountBadge.textContent = AppState.tasks.length;
-}
-
-// 随机问候语
-function setRandomGreeting() {
-  const greetings = AI_MESSAGES.greetings;
-  const randomIndex = Math.floor(Math.random() * greetings.length);
-  if (DOM.avatarGreeting) {
-    DOM.avatarGreeting.textContent = greetings[randomIndex];
-  }
-}
-
 // ==========================================
 // 拍照识别
 // ==========================================
@@ -230,13 +462,11 @@ function initCamera() {
     })
     .catch(err => {
       console.log('Camera error:', err);
-      // 在没有摄像头的情况下显示占位
     });
   }
 }
 
 function capturePhoto() {
-  // 模拟拍照和识别
   const result = document.getElementById('recognize-result');
   const resultList = document.getElementById('result-list');
   
@@ -252,7 +482,7 @@ function capturePhoto() {
       '语文': '📖',
       '数学': '🔢',
       '英语': '🔤',
-      '其他': '✏️'
+      '其他': '📝'
     };
     
     resultList.innerHTML = mockTasks.map((task, index) => `
@@ -268,7 +498,6 @@ function capturePhoto() {
       </div>
     `).join('');
     
-    // 存储到临时任务列表
     AppState.tempTasks = [...mockTasks];
   }
   
@@ -284,14 +513,12 @@ function retakePhoto() {
 }
 
 function openGallery() {
-  // 创建文件输入
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = 'image/*';
   input.onchange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // 模拟处理图片
       capturePhoto();
     }
   };
@@ -301,7 +528,7 @@ function openGallery() {
 function removeResultItem(index) {
   if (AppState.tempTasks) {
     AppState.tempTasks.splice(index, 1);
-    capturePhoto(); // 重新渲染列表
+    capturePhoto();
   }
 }
 
@@ -312,9 +539,9 @@ function confirmPhotoTasks() {
       completed: false,
       id: Date.now() + Math.random()
     }));
-    updateHomeStats();
-    navigateTo('study');
-    startStudySession();
+    saveUserData();
+    navigateTo('home');
+    updateUI();
   }
 }
 
@@ -366,7 +593,6 @@ function initTaskTypeOptions() {
     input.addEventListener('change', () => {
       AppState.selectedTaskType = input.value;
       
-      // 显示/隐藏背诵上传
       if (reciteUpload) {
         reciteUpload.style.display = input.value === 'recite' ? 'block' : 'none';
       }
@@ -374,8 +600,7 @@ function initTaskTypeOptions() {
   });
 }
 
-function startQuickStudy() {
-  // 根据选择创建任务
+function confirmQuickTasks() {
   const taskTypeNames = {
     homework: '写作业',
     reading: '阅读',
@@ -392,9 +617,9 @@ function startQuickStudy() {
     completed: false
   }));
   
-  updateHomeStats();
-  navigateTo('study');
-  startStudySession();
+  saveUserData();
+  navigateTo('home');
+  updateUI();
 }
 
 // ==========================================
@@ -402,31 +627,11 @@ function startQuickStudy() {
 // ==========================================
 function startMission() {
   if (AppState.tasks.length === 0) {
-    // 没有任务，引导设置
-    alert('请先设置今日任务~');
     return;
   }
   
   navigateTo('study');
   startStudySession();
-}
-
-// 首页开始督学按钮
-function handleStartStudy() {
-  if (AppState.tasks.length === 0) {
-    // 没有任务时，进入快速设置
-    navigateTo('quick');
-  } else {
-    // 有任务时，直接开始
-    navigateTo('study');
-    startStudySession();
-  }
-}
-
-// 语音设置任务
-function handleVoiceTask() {
-  // 语音功能占位
-  alert('语音功能开发中，敬请期待~');
 }
 
 // ==========================================
@@ -471,11 +676,9 @@ function updateQueueUI() {
 }
 
 function startTimers() {
-  // 停止已有计时器
   if (AppState.studyTimer) clearInterval(AppState.studyTimer);
   if (AppState.taskTimer) clearInterval(AppState.taskTimer);
   
-  // 总时间计时器
   AppState.studyTimer = setInterval(() => {
     AppState.totalStudyTime++;
     if (DOM.studyTimer) {
@@ -483,7 +686,6 @@ function startTimers() {
     }
   }, 1000);
   
-  // 任务计时器
   AppState.taskTimer = setInterval(() => {
     AppState.taskElapsedTime++;
     
@@ -491,14 +693,12 @@ function startTimers() {
       DOM.taskTimeElapsed.textContent = formatTime(AppState.taskElapsedTime);
     }
     
-    // 更新进度条
     const task = AppState.currentTask;
     if (task && DOM.taskProgress) {
       const progress = Math.min((AppState.taskElapsedTime / (task.duration * 60)) * 100, 100);
       DOM.taskProgress.style.width = `${progress}%`;
     }
     
-    // 定时鼓励
     if (AppState.taskElapsedTime % 120 === 0) {
       showRandomEncouragement();
     }
@@ -522,13 +722,11 @@ function togglePause() {
   const text = btn?.querySelector('span');
   
   if (AppState.studyTimer) {
-    // 暂停
     stopTimers();
     if (icon) icon.className = 'fa-solid fa-play';
     if (text) text.textContent = '继续';
     showAIMessage('休息一下吧~');
   } else {
-    // 继续
     startTimers();
     if (icon) icon.className = 'fa-solid fa-pause';
     if (text) text.textContent = '暂停';
@@ -539,21 +737,16 @@ function togglePause() {
 function completeCurrentTask() {
   if (!AppState.currentTask) return;
   
-  // 标记完成
   AppState.currentTask.completed = true;
-  
-  // 下一个任务
   AppState.currentTaskIndex++;
   AppState.taskElapsedTime = 0;
   
   if (AppState.currentTaskIndex < AppState.tasks.length) {
-    // 还有任务
     AppState.currentTask = AppState.tasks[AppState.currentTaskIndex];
     updateCurrentTaskUI();
     updateQueueUI();
     showAIMessage(AI_MESSAGES.completions[Math.floor(Math.random() * AI_MESSAGES.completions.length)]);
   } else {
-    // 全部完成
     endStudy();
   }
 }
@@ -561,18 +754,27 @@ function completeCurrentTask() {
 function endStudy() {
   stopTimers();
   
-  // 计算奖励
   const completedTasks = AppState.tasks.filter(t => t.completed).length;
-  const earnedStars = completedTasks * 10 + Math.floor(AppState.totalStudyTime / 60) * 2;
+  const studyMinutes = Math.floor(AppState.totalStudyTime / 60);
+  const earnedStars = completedTasks * 10 + studyMinutes * 2;
   
+  // 更新用户数据
+  const oldLevel = AppState.user.level;
   AppState.user.stars += earnedStars;
+  AppState.user.totalMissions += completedTasks;
+  AppState.user.totalStudyTime += AppState.totalStudyTime;
+  
   if (completedTasks === AppState.tasks.length && AppState.tasks.length > 0) {
     AppState.user.streakDays++;
   }
   
+  // 检查是否升级
+  const newLevel = updateAgentLevel();
+  const leveledUp = newLevel > oldLevel;
+  
   // 更新完成页面
   if (DOM.completeStats.duration) {
-    DOM.completeStats.duration.textContent = Math.floor(AppState.totalStudyTime / 60);
+    DOM.completeStats.duration.textContent = studyMinutes;
   }
   if (DOM.completeStats.tasks) {
     DOM.completeStats.tasks.textContent = completedTasks;
@@ -584,10 +786,21 @@ function endStudy() {
     DOM.completeStats.stars.textContent = `+${earnedStars}`;
   }
   
-  // 重置任务
+  // 显示升级提示
+  const levelUpNotice = document.getElementById('level-up-notice');
+  const newLevelName = document.getElementById('new-level');
+  if (levelUpNotice && newLevelName && leveledUp) {
+    newLevelName.textContent = AppState.user.levelName;
+    levelUpNotice.style.display = 'flex';
+  } else if (levelUpNotice) {
+    levelUpNotice.style.display = 'none';
+  }
+  
+  // 清空任务
   AppState.tasks = [];
   AppState.currentTask = null;
   
+  saveUserData();
   navigateTo('complete');
 }
 
@@ -646,18 +859,18 @@ function saveTask() {
   };
   
   AppState.tasks.push(newTask);
-  updateHomeStats();
+  saveUserData();
   
-  // 清空并关闭
   if (nameInput) nameInput.value = '';
   closeAddTaskModal();
   
-  // 如果是在拍照页面添加的，刷新列表
   if (AppState.currentPage === 'photo') {
     if (AppState.tempTasks) {
       AppState.tempTasks.push(newTask);
     }
     capturePhoto();
+  } else {
+    updateUI();
   }
 }
 
@@ -694,14 +907,17 @@ function showRandomEncouragement() {
 }
 
 function shareResult() {
-  // 分享功能占位
   if (navigator.share) {
     navigator.share({
-      title: 'AI督学',
-      text: `我在AI督学完成了今日学习任务，获得了星星奖励！`,
+      title: 'AI督学 - 特工任务完成',
+      text: `我在AI督学完成了今日特工任务，获得了${DOM.completeStats.stars?.textContent || '+50'}特工积分！`,
       url: window.location.href
     });
   } else {
     alert('分享功能开发中~');
   }
 }
+
+// 暴露全局函数
+window.removeTask = removeTask;
+window.removeResultItem = removeResultItem;

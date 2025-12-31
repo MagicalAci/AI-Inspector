@@ -111,6 +111,7 @@
             loop 
             muted 
             playsinline
+            poster="assets/images/avatar-teacher.svg"
           >
             <source src="assets/images/xiaoying-avatar.mp4" type="video/mp4">
           </video>
@@ -157,7 +158,6 @@
               <h3>拍作业单</h3>
               <p>智能识别，自动生成任务</p>
             </div>
-            <i class="fa-solid fa-chevron-right entry-arrow"></i>
           </div>
           
           <!-- 快速设置时间 -->
@@ -169,8 +169,26 @@
               <h3>快速设置</h3>
               <p>直接设置学习时长</p>
             </div>
-            <i class="fa-solid fa-chevron-right entry-arrow"></i>
           </div>
+        </div>
+        
+        <!-- 语音设置提示 -->
+        <div class="voice-hint" id="btn-voice-task">
+          <i class="fa-solid fa-microphone"></i>
+          <span>或者直接语音告诉小影老师今天要学什么~</span>
+        </div>
+      </div>
+      
+      <!-- 今日任务列表 -->
+      <div class="today-tasks-section" id="today-tasks-section">
+        <h2 class="section-title">今日特工任务</h2>
+        <div class="empty-tasks" id="empty-tasks">
+          <div class="empty-icon">📋</div>
+          <p>还没有设置任务哦~</p>
+          <span>点击上方卡片添加今日学习任务</span>
+        </div>
+        <div class="task-list" id="task-list" style="display: none;">
+          <!-- 动态生成任务列表 -->
         </div>
       </div>
       

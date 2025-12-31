@@ -10,7 +10,6 @@
   
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
-  <link rel="apple-touch-icon" href="assets/images/app-icon.png">
   
   <!-- FontAwesome 6 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -19,19 +18,90 @@
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/app.css">
-  
-  <!-- iOS PWA Support -->
-  <meta name="apple-mobile-web-app-title" content="AI督学">
-  <link rel="manifest" href="manifest.json">
 </head>
 <body>
   <div class="app-container" id="app">
     
     <!-- ==========================================
-         首页 - 虚拟人小影老师
+         侧边栏菜单
+         ========================================== -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-overlay" id="sidebar-overlay"></div>
+      <div class="sidebar-content">
+        <!-- 用户信息 -->
+        <div class="sidebar-user">
+          <div class="sidebar-avatar">
+            <img src="assets/images/user-avatar.svg" alt="用户头像" id="sidebar-user-avatar">
+          </div>
+          <div class="sidebar-user-info">
+            <h3 id="sidebar-user-name">小明同学</h3>
+            <p class="sidebar-user-level">
+              <span class="level-badge">Lv.5</span>
+              学习小达人
+            </p>
+          </div>
+        </div>
+        
+        <!-- 菜单列表 -->
+        <div class="sidebar-menu">
+          <div class="menu-item" data-page="history">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span>学习记录</span>
+            <i class="fa-solid fa-chevron-right menu-arrow"></i>
+          </div>
+          <div class="menu-item" data-page="achievements">
+            <i class="fa-solid fa-trophy"></i>
+            <span>我的成就</span>
+            <span class="menu-badge">3</span>
+            <i class="fa-solid fa-chevron-right menu-arrow"></i>
+          </div>
+          <div class="menu-item" data-page="parent">
+            <i class="fa-solid fa-user-group"></i>
+            <span>家长中心</span>
+            <i class="fa-solid fa-chevron-right menu-arrow"></i>
+          </div>
+          <div class="menu-divider"></div>
+          <div class="menu-item" data-page="vip">
+            <i class="fa-solid fa-crown"></i>
+            <span>会员中心</span>
+            <span class="menu-tag vip">VIP</span>
+            <i class="fa-solid fa-chevron-right menu-arrow"></i>
+          </div>
+          <div class="menu-item" data-page="settings">
+            <i class="fa-solid fa-gear"></i>
+            <span>设置</span>
+            <i class="fa-solid fa-chevron-right menu-arrow"></i>
+          </div>
+        </div>
+        
+        <!-- 底部 -->
+        <div class="sidebar-footer">
+          <p>AI督学 v1.0</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- ==========================================
+         首页
          ========================================== -->
     <div class="page page-home active" id="page-home">
-      <!-- 虚拟人视频区域 -->
+      <!-- 顶部栏 -->
+      <header class="home-header">
+        <button class="user-avatar-btn" id="btn-open-sidebar">
+          <img src="assets/images/user-avatar.svg" alt="用户头像" id="home-user-avatar">
+        </button>
+        <div class="header-right">
+          <button class="balance-btn" id="btn-balance">
+            <i class="fa-solid fa-coins"></i>
+            <span id="user-balance">0</span>
+          </button>
+          <button class="recharge-btn" id="btn-recharge">
+            首充
+          </button>
+        </div>
+      </header>
+      
+      <!-- 虚拟人区域 -->
       <div class="avatar-section">
         <div class="avatar-wrapper">
           <video 
@@ -41,33 +111,32 @@
             loop 
             muted 
             playsinline
-            poster="assets/images/avatar-poster.jpg"
           >
             <source src="assets/images/xiaoying-avatar.mp4" type="video/mp4">
           </video>
         </div>
         <h1 class="avatar-name">小影老师</h1>
-        <p class="avatar-intro">你的专属AI督学伙伴</p>
+        <p class="avatar-greeting" id="avatar-greeting">今天也要加油学习哦~</p>
       </div>
       
-      <!-- 今日任务概览 -->
+      <!-- 今日统计 -->
       <div class="home-stats">
         <div class="stat-card">
-          <div class="stat-icon">🎯</div>
+          <span class="stat-icon">🎯</span>
           <div class="stat-info">
             <span class="stat-number" id="today-tasks">0</span>
             <span class="stat-label">今日任务</span>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon">⭐</div>
+          <span class="stat-icon">⭐</span>
           <div class="stat-info">
             <span class="stat-number" id="total-stars">0</span>
             <span class="stat-label">获得星星</span>
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon">🔥</div>
+          <span class="stat-icon">🔥</span>
           <div class="stat-info">
             <span class="stat-number" id="streak-days">0</span>
             <span class="stat-label">连续天数</span>
@@ -75,15 +144,42 @@
         </div>
       </div>
       
-      <!-- 主操作按钮 -->
+      <!-- 任务设置入口 -->
+      <div class="task-entry-section">
+        <h2 class="section-title">设置今日任务</h2>
+        <div class="task-entry-cards">
+          <!-- 拍照识别作业 -->
+          <div class="task-entry-card" id="btn-photo-task">
+            <div class="entry-icon photo">
+              <i class="fa-solid fa-camera"></i>
+            </div>
+            <div class="entry-content">
+              <h3>拍作业单</h3>
+              <p>智能识别，自动生成任务</p>
+            </div>
+            <i class="fa-solid fa-chevron-right entry-arrow"></i>
+          </div>
+          
+          <!-- 快速设置时间 -->
+          <div class="task-entry-card" id="btn-quick-task">
+            <div class="entry-icon time">
+              <i class="fa-solid fa-clock"></i>
+            </div>
+            <div class="entry-content">
+              <h3>快速设置</h3>
+              <p>直接设置学习时长</p>
+            </div>
+            <i class="fa-solid fa-chevron-right entry-arrow"></i>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 开始任务按钮 -->
       <div class="home-actions">
         <button class="btn-start-mission" id="btn-start-mission">
           <i class="fa-solid fa-rocket"></i>
-          <span>开始特工任务</span>
-        </button>
-        <button class="btn-set-tasks" id="btn-set-tasks">
-          <i class="fa-solid fa-list-check"></i>
-          <span>设置今日任务</span>
+          <span>开始今日特工任务</span>
+          <span class="task-count-badge" id="task-count-badge">0</span>
         </button>
       </div>
       
@@ -92,48 +188,195 @@
     </div>
     
     <!-- ==========================================
-         任务设置页面
+         拍照识别作业页面
          ========================================== -->
-    <div class="page page-tasks" id="page-tasks">
-      <!-- 头部 -->
+    <div class="page page-photo" id="page-photo">
       <header class="page-header">
-        <button class="btn-back" id="btn-back-tasks">
+        <button class="btn-back" id="btn-back-photo">
           <i class="fa-solid fa-chevron-left"></i>
         </button>
-        <h1 class="page-title">特工任务设置</h1>
-        <button class="btn-add-task" id="btn-add-task">
-          <i class="fa-solid fa-plus"></i>
+        <h1 class="page-title">拍摄作业单</h1>
+        <button class="btn-help">
+          <i class="fa-solid fa-circle-question"></i>
         </button>
       </header>
       
-      <!-- 任务列表 -->
-      <div class="task-list-container">
-        <div class="task-list" id="task-list">
-          <!-- 任务项会通过JS动态生成 -->
+      <!-- 拍照区域 -->
+      <div class="photo-area">
+        <div class="photo-preview" id="photo-preview">
+          <video id="camera-preview" autoplay playsinline></video>
+          <img id="captured-image" style="display: none;">
+          
+          <!-- 拍照引导框 -->
+          <div class="photo-guide">
+            <div class="guide-corner tl"></div>
+            <div class="guide-corner tr"></div>
+            <div class="guide-corner bl"></div>
+            <div class="guide-corner br"></div>
+          </div>
+          
+          <p class="photo-hint">将作业单放入框内拍摄</p>
         </div>
         
-        <!-- 空状态 -->
-        <div class="empty-state" id="empty-tasks">
-          <div class="empty-icon">📋</div>
-          <p class="empty-text">还没有任务哦</p>
-          <p class="empty-hint">点击右上角 + 添加今日任务</p>
+        <!-- 拍照按钮 -->
+        <div class="photo-controls">
+          <button class="photo-btn-gallery" id="btn-gallery">
+            <i class="fa-solid fa-images"></i>
+          </button>
+          <button class="photo-btn-capture" id="btn-capture">
+            <span class="capture-inner"></span>
+          </button>
+          <button class="photo-btn-flash" id="btn-flash">
+            <i class="fa-solid fa-bolt"></i>
+          </button>
         </div>
       </div>
       
-      <!-- 底部确认按钮 -->
-      <div class="tasks-footer">
-        <button class="btn-confirm-tasks" id="btn-confirm-tasks">
-          <i class="fa-solid fa-check"></i>
-          <span>确认任务，开始督学</span>
+      <!-- 识别结果区域 (拍照后显示) -->
+      <div class="recognize-result" id="recognize-result" style="display: none;">
+        <div class="result-header">
+          <h3>识别到的任务</h3>
+          <button class="btn-retake" id="btn-retake">重新拍摄</button>
+        </div>
+        <div class="result-list" id="result-list">
+          <!-- 动态生成 -->
+        </div>
+        <div class="result-actions">
+          <button class="btn-add-more" id="btn-add-more-task">
+            <i class="fa-solid fa-plus"></i>
+            手动添加任务
+          </button>
+          <button class="btn-confirm-result" id="btn-confirm-photo-tasks">
+            确认并开始督学
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- ==========================================
+         快速设置页面
+         ========================================== -->
+    <div class="page page-quick" id="page-quick">
+      <header class="page-header">
+        <button class="btn-back" id="btn-back-quick">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <h1 class="page-title">快速设置</h1>
+        <div style="width: 40px;"></div>
+      </header>
+      
+      <div class="quick-content">
+        <!-- 学习时长选择 -->
+        <div class="quick-section">
+          <h3 class="quick-section-title">选择学习时长</h3>
+          <div class="duration-grid">
+            <button class="duration-option" data-duration="15">
+              <span class="duration-value">15</span>
+              <span class="duration-unit">分钟</span>
+            </button>
+            <button class="duration-option active" data-duration="30">
+              <span class="duration-value">30</span>
+              <span class="duration-unit">分钟</span>
+            </button>
+            <button class="duration-option" data-duration="45">
+              <span class="duration-value">45</span>
+              <span class="duration-unit">分钟</span>
+            </button>
+            <button class="duration-option" data-duration="60">
+              <span class="duration-value">60</span>
+              <span class="duration-unit">分钟</span>
+            </button>
+          </div>
+          
+          <!-- 自定义时长 -->
+          <div class="custom-duration">
+            <span>自定义：</span>
+            <input type="number" id="custom-duration" min="5" max="120" placeholder="分钟">
+          </div>
+        </div>
+        
+        <!-- 学科选择 -->
+        <div class="quick-section">
+          <h3 class="quick-section-title">选择学科（可多选）</h3>
+          <div class="subject-grid">
+            <button class="subject-option active" data-subject="语文">
+              <span class="subject-icon">📖</span>
+              <span>语文</span>
+            </button>
+            <button class="subject-option" data-subject="数学">
+              <span class="subject-icon">🔢</span>
+              <span>数学</span>
+            </button>
+            <button class="subject-option" data-subject="英语">
+              <span class="subject-icon">🔤</span>
+              <span>英语</span>
+            </button>
+            <button class="subject-option" data-subject="科学">
+              <span class="subject-icon">🔬</span>
+              <span>科学</span>
+            </button>
+            <button class="subject-option" data-subject="阅读">
+              <span class="subject-icon">📚</span>
+              <span>阅读</span>
+            </button>
+            <button class="subject-option" data-subject="其他">
+              <span class="subject-icon">✏️</span>
+              <span>其他</span>
+            </button>
+          </div>
+        </div>
+        
+        <!-- 任务类型 -->
+        <div class="quick-section">
+          <h3 class="quick-section-title">任务类型</h3>
+          <div class="task-type-list">
+            <label class="task-type-item">
+              <input type="radio" name="taskType" value="homework" checked>
+              <span class="type-content">
+                <i class="fa-solid fa-pen"></i>
+                <span>写作业</span>
+              </span>
+            </label>
+            <label class="task-type-item">
+              <input type="radio" name="taskType" value="reading">
+              <span class="type-content">
+                <i class="fa-solid fa-book-open"></i>
+                <span>阅读</span>
+              </span>
+            </label>
+            <label class="task-type-item">
+              <input type="radio" name="taskType" value="recite">
+              <span class="type-content">
+                <i class="fa-solid fa-microphone"></i>
+                <span>背诵</span>
+              </span>
+            </label>
+          </div>
+        </div>
+        
+        <!-- 背诵内容上传 (背诵模式时显示) -->
+        <div class="recite-upload" id="recite-upload" style="display: none;">
+          <h3 class="quick-section-title">上传背诵内容</h3>
+          <div class="upload-area" id="upload-recite">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <p>点击上传图片或拍照</p>
+            <span>支持拍摄课本、诗词等</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="quick-footer">
+        <button class="btn-start-quick" id="btn-start-quick">
+          <i class="fa-solid fa-rocket"></i>
+          开始督学
         </button>
       </div>
     </div>
     
     <!-- ==========================================
-         视频督学页面 - 核心功能
+         视频督学页面
          ========================================== -->
     <div class="page page-study" id="page-study">
-      <!-- 顶部状态栏 -->
       <header class="study-header">
         <div class="study-timer">
           <i class="fa-solid fa-clock"></i>
@@ -144,7 +387,7 @@
           <span id="focus-status">专注中</span>
         </div>
         <button class="btn-minimize" id="btn-minimize">
-          <i class="fa-solid fa-compress"></i>
+          <i class="fa-solid fa-xmark"></i>
         </button>
       </header>
       
@@ -172,18 +415,19 @@
       <!-- 当前任务卡片 -->
       <div class="current-task-card" id="current-task-card">
         <div class="task-badge">当前任务</div>
-        <h3 class="task-title" id="current-task-name">语文 - 背诵古诗</h3>
+        <h3 class="task-title" id="current-task-name">语文作业</h3>
         <div class="task-progress-bar">
           <div class="task-progress-fill" id="task-progress" style="width: 0%"></div>
         </div>
-        <div class="task-info">
-          <span class="task-reward"><i class="fa-solid fa-star"></i> +20</span>
-          <span class="task-duration">预计 10 分钟</span>
+        <div class="task-timer-info">
+          <span class="time-elapsed" id="task-time-elapsed">00:00</span>
+          <span class="time-divider">/</span>
+          <span class="time-total" id="task-time-total">30:00</span>
         </div>
       </div>
       
-      <!-- 任务队列预览 -->
-      <div class="task-queue">
+      <!-- 任务队列 -->
+      <div class="task-queue" id="task-queue-section">
         <p class="queue-label">接下来：</p>
         <div class="queue-items" id="queue-items">
           <!-- 动态生成 -->
@@ -198,7 +442,7 @@
         </button>
         <button class="control-btn primary" id="btn-complete-task">
           <i class="fa-solid fa-check"></i>
-          <span>完成任务</span>
+          <span>完成</span>
         </button>
         <button class="control-btn danger" id="btn-end-study">
           <i class="fa-solid fa-stop"></i>
@@ -208,44 +452,63 @@
     </div>
     
     <!-- ==========================================
-         任务完成庆祝页面
+         任务完成页面
          ========================================== -->
-    <div class="page page-celebrate" id="page-celebrate">
-      <div class="celebrate-content">
-        <div class="celebrate-icon">🎉</div>
-        <h1 class="celebrate-title">太棒了！</h1>
-        <p class="celebrate-text" id="celebrate-text">你完成了今天的所有任务</p>
+    <div class="page page-complete" id="page-complete">
+      <div class="complete-content">
+        <div class="complete-animation">
+          <div class="confetti"></div>
+          <div class="complete-icon">🎉</div>
+        </div>
         
-        <div class="celebrate-stats">
-          <div class="celebrate-stat">
-            <span class="celebrate-number" id="celebrate-time">45</span>
-            <span class="celebrate-label">学习分钟</span>
+        <h1 class="complete-title">太棒了！</h1>
+        <p class="complete-subtitle" id="complete-text">你完成了今天的学习任务</p>
+        
+        <div class="complete-reward">
+          <div class="reward-stars">
+            <i class="fa-solid fa-star"></i>
+            <span id="reward-stars">+50</span>
           </div>
-          <div class="celebrate-stat">
-            <span class="celebrate-number" id="celebrate-tasks">5</span>
-            <span class="celebrate-label">完成任务</span>
+          <p>获得星星奖励</p>
+        </div>
+        
+        <div class="complete-stats">
+          <div class="complete-stat">
+            <span class="stat-value" id="complete-duration">30</span>
+            <span class="stat-label">学习分钟</span>
           </div>
-          <div class="celebrate-stat">
-            <span class="celebrate-number" id="celebrate-stars">100</span>
-            <span class="celebrate-label">获得星星</span>
+          <div class="stat-divider"></div>
+          <div class="complete-stat">
+            <span class="stat-value" id="complete-tasks">3</span>
+            <span class="stat-label">完成任务</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="complete-stat">
+            <span class="stat-value" id="complete-focus">92%</span>
+            <span class="stat-label">专注度</span>
           </div>
         </div>
         
-        <button class="btn-back-home" id="btn-celebrate-home">
-          <i class="fa-solid fa-home"></i>
-          <span>返回首页</span>
-        </button>
+        <div class="complete-actions">
+          <button class="btn-share" id="btn-share">
+            <i class="fa-solid fa-share-nodes"></i>
+            分享成就
+          </button>
+          <button class="btn-home" id="btn-complete-home">
+            返回首页
+          </button>
+        </div>
       </div>
     </div>
     
     <!-- ==========================================
-         添加任务弹窗
+         手动添加任务弹窗
          ========================================== -->
     <div class="modal" id="modal-add-task">
       <div class="modal-overlay"></div>
       <div class="modal-content">
         <div class="modal-header">
-          <h2>添加特工任务</h2>
+          <h2>添加任务</h2>
           <button class="modal-close" id="modal-close">
             <i class="fa-solid fa-xmark"></i>
           </button>
@@ -256,46 +519,70 @@
             <input type="text" id="input-task-name" placeholder="例如：语文作业、背诵古诗...">
           </div>
           <div class="form-group">
-            <label>预计时间（分钟）</label>
-            <div class="time-options">
-              <button class="time-option" data-time="5">5分钟</button>
-              <button class="time-option active" data-time="10">10分钟</button>
-              <button class="time-option" data-time="15">15分钟</button>
-              <button class="time-option" data-time="20">20分钟</button>
-              <button class="time-option" data-time="30">30分钟</button>
+            <label>预计时间</label>
+            <div class="time-selector">
+              <button class="time-btn" data-time="10">10分钟</button>
+              <button class="time-btn active" data-time="20">20分钟</button>
+              <button class="time-btn" data-time="30">30分钟</button>
             </div>
           </div>
           <div class="form-group">
             <label>任务类型</label>
-            <div class="type-options">
-              <button class="type-option active" data-type="语文">
-                <span class="type-icon">📖</span>
-                <span>语文</span>
-              </button>
-              <button class="type-option" data-type="数学">
-                <span class="type-icon">🔢</span>
-                <span>数学</span>
-              </button>
-              <button class="type-option" data-type="英语">
-                <span class="type-icon">🔤</span>
-                <span>英语</span>
-              </button>
-              <button class="type-option" data-type="阅读">
-                <span class="type-icon">📚</span>
-                <span>阅读</span>
-              </button>
-              <button class="type-option" data-type="其他">
-                <span class="type-icon">✏️</span>
-                <span>其他</span>
-              </button>
+            <div class="type-selector">
+              <button class="type-btn active" data-type="语文">📖 语文</button>
+              <button class="type-btn" data-type="数学">🔢 数学</button>
+              <button class="type-btn" data-type="英语">🔤 英语</button>
+              <button class="type-btn" data-type="其他">✏️ 其他</button>
             </div>
           </div>
         </div>
         <div class="modal-footer">
           <button class="btn-modal-confirm" id="btn-save-task">
-            <i class="fa-solid fa-plus"></i>
             添加任务
           </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- ==========================================
+         首充/充值弹窗
+         ========================================== -->
+    <div class="modal" id="modal-recharge">
+      <div class="modal-overlay"></div>
+      <div class="modal-content modal-recharge">
+        <div class="modal-header">
+          <h2>🎁 首充特惠</h2>
+          <button class="modal-close" id="modal-recharge-close">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="recharge-banner">
+            <span class="recharge-tag">限时优惠</span>
+            <h3>首次充值送双倍星星</h3>
+          </div>
+          <div class="recharge-options">
+            <div class="recharge-option">
+              <span class="coin-amount">100</span>
+              <span class="coin-label">星星</span>
+              <span class="price">¥6</span>
+            </div>
+            <div class="recharge-option popular">
+              <span class="popular-tag">推荐</span>
+              <span class="coin-amount">300</span>
+              <span class="coin-label">星星</span>
+              <span class="price">¥18</span>
+              <span class="original-price">¥30</span>
+            </div>
+            <div class="recharge-option">
+              <span class="coin-amount">600</span>
+              <span class="coin-label">星星</span>
+              <span class="price">¥30</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-recharge-confirm">立即充值</button>
         </div>
       </div>
     </div>

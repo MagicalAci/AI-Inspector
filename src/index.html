@@ -23,37 +23,61 @@
   <div class="app-container" id="app">
     
     <!-- ==========================================
-         侧边栏菜单
+         侧边栏菜单（详细档案）
          ========================================== -->
     <div class="sidebar" id="sidebar">
       <div class="sidebar-overlay" id="sidebar-overlay"></div>
       <div class="sidebar-content">
-        <!-- 用户信息 -->
-        <div class="sidebar-user">
+        <!-- 用户信息头部 -->
+        <div class="sidebar-header">
           <div class="sidebar-avatar">
-            <img src="assets/images/user-avatar.svg" alt="用户头像" id="sidebar-user-avatar">
+            <img src="assets/images/user-avatar.svg" alt="用户头像">
           </div>
           <div class="sidebar-user-info">
             <h3 id="sidebar-user-name">小明同学</h3>
-            <p class="sidebar-user-level">
-              <span class="level-badge" id="agent-level-badge">🎖️ 见习特工</span>
-            </p>
+            <div class="sidebar-level-badge" id="sidebar-level-badge">
+              <span class="level-icon">🎖️</span>
+              <span class="level-name" id="sidebar-level-name">见习特工</span>
+            </div>
           </div>
         </div>
         
-        <!-- 特工数据 -->
-        <div class="sidebar-stats">
-          <div class="sidebar-stat">
-            <span class="stat-value" id="sidebar-total-missions">0</span>
-            <span class="stat-label">累计任务</span>
+        <!-- 特工档案卡片 -->
+        <div class="sidebar-agent-card">
+          <div class="agent-card-title">📋 特工档案</div>
+          
+          <!-- 等级进度 -->
+          <div class="agent-level-section">
+            <div class="level-info">
+              <span>当前等级</span>
+              <span class="level-current" id="sidebar-level-current">Lv.1</span>
+            </div>
+            <div class="level-progress-wrap">
+              <div class="level-progress-bar">
+                <div class="level-progress-fill" id="sidebar-level-progress" style="width: 30%"></div>
+              </div>
+              <span class="level-progress-text" id="sidebar-next-level">距下级 70 积分</span>
+            </div>
           </div>
-          <div class="sidebar-stat">
-            <span class="stat-value" id="sidebar-total-time">0</span>
-            <span class="stat-label">学习时长</span>
-          </div>
-          <div class="sidebar-stat">
-            <span class="stat-value" id="sidebar-streak">0</span>
-            <span class="stat-label">连续天数</span>
+          
+          <!-- 累计数据 -->
+          <div class="agent-data-grid">
+            <div class="agent-data-item">
+              <span class="data-value" id="sidebar-total-stars">0</span>
+              <span class="data-label">特工积分</span>
+            </div>
+            <div class="agent-data-item">
+              <span class="data-value" id="sidebar-total-missions">0</span>
+              <span class="data-label">完成任务</span>
+            </div>
+            <div class="agent-data-item">
+              <span class="data-value" id="sidebar-total-time">0h</span>
+              <span class="data-label">学习时长</span>
+            </div>
+            <div class="agent-data-item">
+              <span class="data-value" id="sidebar-streak">0</span>
+              <span class="data-label">连续天数</span>
+            </div>
           </div>
         </div>
         
@@ -67,7 +91,7 @@
           <div class="menu-item" data-page="achievements">
             <i class="fa-solid fa-medal"></i>
             <span>特工成就</span>
-            <span class="menu-badge" id="achievement-badge">3</span>
+            <span class="menu-badge">3</span>
             <i class="fa-solid fa-chevron-right menu-arrow"></i>
           </div>
           <div class="menu-item" data-page="parent">
@@ -97,13 +121,14 @@
     </div>
     
     <!-- ==========================================
-         首页
+         首页（简洁版）
          ========================================== -->
     <div class="page page-home active" id="page-home">
       <!-- 顶部栏 -->
       <header class="home-header">
         <button class="user-avatar-btn" id="btn-open-sidebar">
-          <img src="assets/images/user-avatar.svg" alt="用户头像" id="home-user-avatar">
+          <img src="assets/images/user-avatar.svg" alt="用户头像">
+          <span class="level-dot" id="home-level-dot">1</span>
         </button>
         <div class="header-right">
           <button class="balance-btn" id="btn-balance">
@@ -134,72 +159,34 @@
         <p class="avatar-greeting" id="avatar-greeting">今天也要加油学习哦~</p>
       </div>
       
-      <!-- 特工档案卡片 -->
-      <div class="agent-card">
-        <div class="agent-header">
-          <span class="agent-title">🕵️ 特工档案</span>
-          <span class="agent-level" id="agent-level">见习特工</span>
+      <!-- 简洁统计条 -->
+      <div class="home-stats-bar">
+        <div class="stat-item">
+          <span class="stat-icon">📋</span>
+          <span class="stat-value" id="today-tasks">0</span>
+          <span class="stat-label">今日任务</span>
         </div>
-        <div class="agent-stats">
-          <div class="agent-stat">
-            <span class="agent-stat-value" id="today-tasks">0</span>
-            <span class="agent-stat-label">今日任务</span>
-          </div>
-          <div class="agent-stat-divider"></div>
-          <div class="agent-stat">
-            <span class="agent-stat-value" id="total-stars">0</span>
-            <span class="agent-stat-label">特工积分</span>
-          </div>
-          <div class="agent-stat-divider"></div>
-          <div class="agent-stat">
-            <span class="agent-stat-value" id="streak-days">0</span>
-            <span class="agent-stat-label">连续天数</span>
-          </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-icon" id="level-icon">🎖️</span>
+          <span class="stat-value" id="agent-level-short">Lv.1</span>
+          <span class="stat-label" id="agent-level-name">见习特工</span>
         </div>
-        <!-- 升级进度 -->
-        <div class="level-progress">
-          <div class="level-progress-bar">
-            <div class="level-progress-fill" id="level-progress" style="width: 30%"></div>
-          </div>
-          <span class="level-progress-text">距离下一等级还需 <strong id="next-level-points">70</strong> 积分</span>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-icon">🔥</span>
+          <span class="stat-value" id="streak-days">0</span>
+          <span class="stat-label">连续天数</span>
         </div>
       </div>
       
-      <!-- 任务设置入口 -->
-      <div class="task-entry-section">
-        <h2 class="section-title">设置特工任务</h2>
-        <div class="task-entry-cards">
-          <!-- 拍照识别作业 -->
-          <div class="task-entry-card" id="btn-photo-task">
-            <div class="entry-icon photo">
-              <i class="fa-solid fa-camera"></i>
-            </div>
-            <div class="entry-content">
-              <h3>拍作业单</h3>
-              <p>智能识别，自动生成任务</p>
-            </div>
-            <i class="fa-solid fa-chevron-right entry-arrow"></i>
-          </div>
-          
-          <!-- 快速设置时间 -->
-          <div class="task-entry-card" id="btn-quick-task">
-            <div class="entry-icon time">
-              <i class="fa-solid fa-clock"></i>
-            </div>
-            <div class="entry-content">
-              <h3>快速设置</h3>
-              <p>直接设置学习时长</p>
-            </div>
-            <i class="fa-solid fa-chevron-right entry-arrow"></i>
-          </div>
-        </div>
-      </div>
-      
-      <!-- 当前任务预览（有任务时显示）-->
+      <!-- 待执行任务列表（有任务时显示）-->
       <div class="pending-tasks" id="pending-tasks" style="display: none;">
         <div class="pending-header">
           <span class="pending-title">📋 待执行任务</span>
-          <button class="btn-edit-tasks" id="btn-edit-tasks">编辑</button>
+          <button class="btn-edit-tasks" id="btn-edit-tasks">
+            <i class="fa-solid fa-plus"></i> 添加
+          </button>
         </div>
         <div class="pending-list" id="pending-list">
           <!-- 动态生成 -->
@@ -208,20 +195,52 @@
       
       <!-- 主按钮区域 -->
       <div class="home-actions">
-        <!-- 无任务状态 -->
-        <div class="no-task-hint" id="no-task-hint">
-          <p>👆 先设置今日特工任务吧</p>
-        </div>
-        
-        <!-- 有任务状态 -->
-        <button class="btn-start-mission" id="btn-start-mission" disabled>
-          <i class="fa-solid fa-rocket"></i>
-          <span id="mission-btn-text">设置任务后开始</span>
+        <button class="btn-main-action" id="btn-main-action">
+          <i class="fa-solid fa-clipboard-list" id="main-action-icon"></i>
+          <span id="main-action-text">设置特工任务</span>
         </button>
       </div>
       
       <!-- AI提示 -->
       <p class="ai-disclaimer">小影老师由 AI 驱动</p>
+    </div>
+    
+    <!-- ==========================================
+         任务设置选择弹窗
+         ========================================== -->
+    <div class="modal" id="modal-task-choice">
+      <div class="modal-overlay"></div>
+      <div class="modal-content modal-choice">
+        <div class="modal-header">
+          <h2>设置特工任务</h2>
+          <button class="modal-close" id="modal-choice-close">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="choice-desc">选择任务设置方式</p>
+          <div class="choice-options">
+            <button class="choice-btn" id="choice-photo">
+              <div class="choice-icon photo">
+                <i class="fa-solid fa-camera"></i>
+              </div>
+              <div class="choice-info">
+                <h3>拍作业单</h3>
+                <p>拍照识别，智能生成任务</p>
+              </div>
+            </button>
+            <button class="choice-btn" id="choice-quick">
+              <div class="choice-icon quick">
+                <i class="fa-solid fa-bolt"></i>
+              </div>
+              <div class="choice-info">
+                <h3>快速设置</h3>
+                <p>选择时长和科目</p>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
     
     <!-- ==========================================
@@ -269,19 +288,17 @@
         </div>
       </div>
       
-      <!-- 识别结果区域 (拍照后显示) -->
+      <!-- 识别结果区域 -->
       <div class="recognize-result" id="recognize-result" style="display: none;">
         <div class="result-header">
-          <h3>识别到的特工任务</h3>
+          <h3>识别到的任务</h3>
           <button class="btn-retake" id="btn-retake">重新拍摄</button>
         </div>
-        <div class="result-list" id="result-list">
-          <!-- 动态生成 -->
-        </div>
+        <div class="result-list" id="result-list"></div>
         <div class="result-actions">
           <button class="btn-add-more" id="btn-add-more-task">
             <i class="fa-solid fa-plus"></i>
-            添加特工任务
+            添加任务
           </button>
           <button class="btn-confirm-result" id="btn-confirm-photo-tasks">
             确认任务
@@ -305,7 +322,7 @@
       <div class="quick-content">
         <!-- 学习时长选择 -->
         <div class="quick-section">
-          <h3 class="quick-section-title">选择任务时长</h3>
+          <h3 class="quick-section-title">任务时长</h3>
           <div class="duration-grid">
             <button class="duration-option" data-duration="15">
               <span class="duration-value">15</span>
@@ -324,8 +341,6 @@
               <span class="duration-unit">分钟</span>
             </button>
           </div>
-          
-          <!-- 自定义时长 -->
           <div class="custom-duration">
             <span>自定义：</span>
             <input type="number" id="custom-duration" min="5" max="120" placeholder="分钟">
@@ -391,7 +406,7 @@
           </div>
         </div>
         
-        <!-- 背诵内容上传 (背诵模式时显示) -->
+        <!-- 背诵内容上传 -->
         <div class="recite-upload" id="recite-upload" style="display: none;">
           <h3 class="quick-section-title">上传背诵内容</h3>
           <div class="upload-area" id="upload-recite">
@@ -405,7 +420,7 @@
       <div class="quick-footer">
         <button class="btn-start-quick" id="btn-start-quick">
           <i class="fa-solid fa-check"></i>
-          确认特工任务
+          确认任务
         </button>
       </div>
     </div>
@@ -466,9 +481,7 @@
       <!-- 任务队列 -->
       <div class="task-queue" id="task-queue-section">
         <p class="queue-label">接下来：</p>
-        <div class="queue-items" id="queue-items">
-          <!-- 动态生成 -->
-        </div>
+        <div class="queue-items" id="queue-items"></div>
       </div>
       
       <!-- 底部控制栏 -->
@@ -494,12 +507,11 @@
     <div class="page page-complete" id="page-complete">
       <div class="complete-content">
         <div class="complete-animation">
-          <div class="confetti"></div>
           <div class="complete-icon">🎉</div>
         </div>
         
         <h1 class="complete-title">任务完成！</h1>
-        <p class="complete-subtitle" id="complete-text">特工表现出色！</p>
+        <p class="complete-subtitle">特工表现出色！</p>
         
         <div class="complete-reward">
           <div class="reward-stars">
@@ -636,3 +648,4 @@
   <script src="js/app.js"></script>
 </body>
 </html>
+

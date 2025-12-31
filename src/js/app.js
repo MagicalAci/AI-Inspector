@@ -1,6 +1,6 @@
 /**
- * AI督学 - 主应用程序 v3
- * 特工系统优化版
+ * AI督学 - 主应用程序 v4
+ * 优化版：按钮逻辑 + 首页侧边栏协调
  */
 
 // 特工等级配置
@@ -43,31 +43,29 @@ const AppState = {
 const AI_MESSAGES = {
   greetings: [
     '特工，准备好执行任务了吗？',
-    '今天要完成什么特工任务呀？',
-    '小影老师在等你呢！',
-    '欢迎回来，特工！'
+    '今天要完成什么任务呀？',
+    '小影老师在等你呢！'
   ],
   noTask: [
-    '先设置今日特工任务吧~',
-    '点击上方设置你的任务~',
+    '先设置今日任务吧~',
+    '点击下方按钮设置任务~',
     '特工，该安排任务了！'
   ],
   hasTask: [
     '任务已就绪，随时可以开始！',
-    '特工，任务等你来执行！',
-    '准备好了吗？开始吧！'
+    '准备好了吗？开始吧！',
+    '特工任务等你来执行！'
   ],
   encouragements: [
     '加油！你正在认真学习呢~',
     '真棒！保持专注！',
     '小影老师看到你很努力哦~',
-    '继续保持，你是最棒的特工！',
-    '学习使你变得更强大~'
+    '继续保持，你是最棒的！'
   ],
   completions: [
     '太棒了！任务完成！',
     '你真是个优秀的特工！',
-    '完美！继续下一个任务吧！'
+    '完美！继续下一个吧！'
   ]
 };
 
@@ -103,7 +101,6 @@ function loadUserData() {
     }
   }
   
-  // 计算等级
   updateAgentLevel();
 }
 
@@ -172,22 +169,24 @@ function initDOM() {
   // 弹窗
   DOM.modalAddTask = document.getElementById('modal-add-task');
   DOM.modalRecharge = document.getElementById('modal-recharge');
+  DOM.modalTaskChoice = document.getElementById('modal-task-choice');
   
   // 首页元素
   DOM.avatarGreeting = document.getElementById('avatar-greeting');
-  DOM.agentLevel = document.getElementById('agent-level');
   DOM.todayTasks = document.getElementById('today-tasks');
-  DOM.totalStars = document.getElementById('total-stars');
   DOM.streakDays = document.getElementById('streak-days');
-  DOM.levelProgress = document.getElementById('level-progress');
-  DOM.nextLevelPoints = document.getElementById('next-level-points');
+  DOM.agentLevelShort = document.getElementById('agent-level-short');
+  DOM.agentLevelName = document.getElementById('agent-level-name');
+  DOM.levelIcon = document.getElementById('level-icon');
+  DOM.homeLevelDot = document.getElementById('home-level-dot');
+  DOM.userBalance = document.getElementById('user-balance');
   
   // 任务相关
   DOM.pendingTasks = document.getElementById('pending-tasks');
   DOM.pendingList = document.getElementById('pending-list');
-  DOM.noTaskHint = document.getElementById('no-task-hint');
-  DOM.btnStartMission = document.getElementById('btn-start-mission');
-  DOM.missionBtnText = document.getElementById('mission-btn-text');
+  DOM.btnMainAction = document.getElementById('btn-main-action');
+  DOM.mainActionIcon = document.getElementById('main-action-icon');
+  DOM.mainActionText = document.getElementById('main-action-text');
   
   // 督学页面元素
   DOM.studyTimer = document.getElementById('study-time');
@@ -207,10 +206,15 @@ function initDOM() {
   };
   
   // 侧边栏元素
+  DOM.sidebarLevelName = document.getElementById('sidebar-level-name');
+  DOM.sidebarLevelBadge = document.getElementById('sidebar-level-badge');
+  DOM.sidebarLevelCurrent = document.getElementById('sidebar-level-current');
+  DOM.sidebarLevelProgress = document.getElementById('sidebar-level-progress');
+  DOM.sidebarNextLevel = document.getElementById('sidebar-next-level');
+  DOM.sidebarTotalStars = document.getElementById('sidebar-total-stars');
   DOM.sidebarTotalMissions = document.getElementById('sidebar-total-missions');
   DOM.sidebarTotalTime = document.getElementById('sidebar-total-time');
   DOM.sidebarStreak = document.getElementById('sidebar-streak');
-  DOM.agentLevelBadge = document.getElementById('agent-level-badge');
 }
 
 // 初始化事件监听
@@ -219,11 +223,23 @@ function initEventListeners() {
   document.getElementById('btn-open-sidebar')?.addEventListener('click', openSidebar);
   DOM.sidebarOverlay?.addEventListener('click', closeSidebar);
   
-  // 导航按钮
-  document.getElementById('btn-photo-task')?.addEventListener('click', () => navigateTo('photo'));
-  document.getElementById('btn-quick-task')?.addEventListener('click', () => navigateTo('quick'));
-  document.getElementById('btn-start-mission')?.addEventListener('click', startMission);
-  document.getElementById('btn-edit-tasks')?.addEventListener('click', openEditTasks);
+  // 主按钮
+  DOM.btnMainAction?.addEventListener('click', handleMainAction);
+  
+  // 添加任务按钮
+  document.getElementById('btn-edit-tasks')?.addEventListener('click', openAddTaskModal);
+  
+  // 任务选择弹窗
+  document.getElementById('modal-choice-close')?.addEventListener('click', closeTaskChoiceModal);
+  document.getElementById('choice-photo')?.addEventListener('click', () => {
+    closeTaskChoiceModal();
+    navigateTo('photo');
+  });
+  document.getElementById('choice-quick')?.addEventListener('click', () => {
+    closeTaskChoiceModal();
+    navigateTo('quick');
+  });
+  DOM.modalTaskChoice?.querySelector('.modal-overlay')?.addEventListener('click', closeTaskChoiceModal);
   
   // 返回按钮
   document.getElementById('btn-back-photo')?.addEventListener('click', () => navigateTo('home'));
@@ -255,7 +271,7 @@ function initEventListeners() {
   });
   document.getElementById('btn-share')?.addEventListener('click', shareResult);
   
-  // 弹窗
+  // 添加任务弹窗
   document.getElementById('modal-close')?.addEventListener('click', closeAddTaskModal);
   document.getElementById('btn-save-task')?.addEventListener('click', saveTask);
   initTimeBtns();
@@ -265,9 +281,28 @@ function initEventListeners() {
   document.getElementById('btn-recharge')?.addEventListener('click', openRechargeModal);
   document.getElementById('modal-recharge-close')?.addEventListener('click', closeRechargeModal);
   DOM.modalRecharge?.querySelector('.modal-overlay')?.addEventListener('click', closeRechargeModal);
-  
-  // 弹窗overlay
   DOM.modalAddTask?.querySelector('.modal-overlay')?.addEventListener('click', closeAddTaskModal);
+}
+
+// 主按钮点击处理
+function handleMainAction() {
+  if (AppState.tasks.length === 0) {
+    // 无任务：弹出选择框
+    openTaskChoiceModal();
+  } else {
+    // 有任务：直接开始
+    navigateTo('study');
+    startStudySession();
+  }
+}
+
+// 任务选择弹窗
+function openTaskChoiceModal() {
+  DOM.modalTaskChoice?.classList.add('active');
+}
+
+function closeTaskChoiceModal() {
+  DOM.modalTaskChoice?.classList.remove('active');
 }
 
 // 更新所有UI
@@ -276,34 +311,39 @@ function updateUI() {
   updateHomeUI();
   updateSidebarUI();
   updateTaskListUI();
-  updateMissionButton();
+  updateMainButton();
 }
 
 // 更新首页UI
 function updateHomeUI() {
-  // 特工等级
-  if (DOM.agentLevel) {
-    DOM.agentLevel.textContent = AppState.user.levelName;
-  }
-  
-  // 统计数据
+  // 今日任务数
   if (DOM.todayTasks) {
     DOM.todayTasks.textContent = AppState.tasks.length;
   }
-  if (DOM.totalStars) {
-    DOM.totalStars.textContent = AppState.user.stars;
-  }
+  
+  // 连续天数
   if (DOM.streakDays) {
     DOM.streakDays.textContent = AppState.user.streakDays;
   }
   
-  // 等级进度
-  if (DOM.levelProgress) {
-    DOM.levelProgress.style.width = `${getLevelProgress()}%`;
+  // 等级显示
+  const level = AGENT_LEVELS[AppState.user.level];
+  if (DOM.agentLevelShort) {
+    DOM.agentLevelShort.textContent = `Lv.${AppState.user.level + 1}`;
   }
-  if (DOM.nextLevelPoints) {
-    const nextPoints = getNextLevelPoints();
-    DOM.nextLevelPoints.textContent = nextPoints > 0 ? nextPoints : '已满级';
+  if (DOM.agentLevelName) {
+    DOM.agentLevelName.textContent = level.name;
+  }
+  if (DOM.levelIcon) {
+    DOM.levelIcon.textContent = level.icon;
+  }
+  if (DOM.homeLevelDot) {
+    DOM.homeLevelDot.textContent = AppState.user.level + 1;
+  }
+  
+  // 余额
+  if (DOM.userBalance) {
+    DOM.userBalance.textContent = AppState.user.stars;
   }
   
   // 问候语
@@ -314,19 +354,31 @@ function updateHomeUI() {
 function updateGreeting() {
   if (!DOM.avatarGreeting) return;
   
-  let messages;
-  if (AppState.tasks.length === 0) {
-    messages = AI_MESSAGES.noTask;
-  } else {
-    messages = AI_MESSAGES.hasTask;
-  }
-  
+  let messages = AppState.tasks.length === 0 ? AI_MESSAGES.noTask : AI_MESSAGES.hasTask;
   const randomIndex = Math.floor(Math.random() * messages.length);
   DOM.avatarGreeting.textContent = messages[randomIndex];
 }
 
 // 更新侧边栏UI
 function updateSidebarUI() {
+  const level = AGENT_LEVELS[AppState.user.level];
+  
+  if (DOM.sidebarLevelName) {
+    DOM.sidebarLevelName.textContent = level.name;
+  }
+  if (DOM.sidebarLevelCurrent) {
+    DOM.sidebarLevelCurrent.textContent = `Lv.${AppState.user.level + 1}`;
+  }
+  if (DOM.sidebarLevelProgress) {
+    DOM.sidebarLevelProgress.style.width = `${getLevelProgress()}%`;
+  }
+  if (DOM.sidebarNextLevel) {
+    const next = getNextLevelPoints();
+    DOM.sidebarNextLevel.textContent = next > 0 ? `距下级 ${next} 积分` : '已满级';
+  }
+  if (DOM.sidebarTotalStars) {
+    DOM.sidebarTotalStars.textContent = AppState.user.stars;
+  }
   if (DOM.sidebarTotalMissions) {
     DOM.sidebarTotalMissions.textContent = AppState.user.totalMissions;
   }
@@ -336,32 +388,22 @@ function updateSidebarUI() {
   if (DOM.sidebarStreak) {
     DOM.sidebarStreak.textContent = AppState.user.streakDays;
   }
-  if (DOM.agentLevelBadge) {
-    const level = AGENT_LEVELS[AppState.user.level];
-    DOM.agentLevelBadge.textContent = `${level.icon} ${level.name}`;
-  }
 }
 
 // 更新任务列表UI
 function updateTaskListUI() {
   if (AppState.tasks.length === 0) {
     if (DOM.pendingTasks) DOM.pendingTasks.style.display = 'none';
-    if (DOM.noTaskHint) DOM.noTaskHint.style.display = 'block';
   } else {
     if (DOM.pendingTasks) DOM.pendingTasks.style.display = 'block';
-    if (DOM.noTaskHint) DOM.noTaskHint.style.display = 'none';
     
     if (DOM.pendingList) {
       const subjectIcons = {
-        '语文': '📖',
-        '数学': '🔢',
-        '英语': '🔤',
-        '科学': '🔬',
-        '阅读': '📚',
-        '其他': '✏️'
+        '语文': '📖', '数学': '🔢', '英语': '🔤',
+        '科学': '🔬', '阅读': '📚', '其他': '✏️'
       };
       
-      DOM.pendingList.innerHTML = AppState.tasks.slice(0, 3).map((task, index) => `
+      DOM.pendingList.innerHTML = AppState.tasks.map((task, index) => `
         <div class="pending-item">
           <span class="pending-item-icon">${subjectIcons[task.subject] || '📝'}</span>
           <div class="pending-item-info">
@@ -373,33 +415,29 @@ function updateTaskListUI() {
           </button>
         </div>
       `).join('');
-      
-      if (AppState.tasks.length > 3) {
-        DOM.pendingList.innerHTML += `
-          <div class="pending-item-more">
-            还有 ${AppState.tasks.length - 3} 个任务...
-          </div>
-        `;
-      }
     }
   }
 }
 
-// 更新开始任务按钮
-function updateMissionButton() {
-  if (!DOM.btnStartMission) return;
+// 更新主按钮
+function updateMainButton() {
+  if (!DOM.btnMainAction) return;
   
   if (AppState.tasks.length === 0) {
-    DOM.btnStartMission.disabled = true;
-    DOM.btnStartMission.classList.remove('ready');
-    if (DOM.missionBtnText) {
-      DOM.missionBtnText.textContent = '设置任务后开始';
+    DOM.btnMainAction.classList.remove('has-tasks');
+    if (DOM.mainActionIcon) {
+      DOM.mainActionIcon.className = 'fa-solid fa-clipboard-list';
+    }
+    if (DOM.mainActionText) {
+      DOM.mainActionText.textContent = '设置特工任务';
     }
   } else {
-    DOM.btnStartMission.disabled = false;
-    DOM.btnStartMission.classList.add('ready');
-    if (DOM.missionBtnText) {
-      DOM.missionBtnText.textContent = `开始特工任务 (${AppState.tasks.length})`;
+    DOM.btnMainAction.classList.add('has-tasks');
+    if (DOM.mainActionIcon) {
+      DOM.mainActionIcon.className = 'fa-solid fa-rocket';
+    }
+    if (DOM.mainActionText) {
+      DOM.mainActionText.textContent = `开始特工任务 (${AppState.tasks.length})`;
     }
   }
 }
@@ -411,12 +449,6 @@ function removeTask(index) {
   updateUI();
 }
 
-// 打开编辑任务
-function openEditTasks() {
-  // 可以扩展为完整的编辑页面
-  navigateTo('quick');
-}
-
 // 页面导航
 function navigateTo(pageId) {
   Object.values(DOM.pages).forEach(page => {
@@ -426,7 +458,6 @@ function navigateTo(pageId) {
   DOM.pages[pageId]?.classList.add('active');
   AppState.currentPage = pageId;
   
-  // 页面特殊处理
   if (pageId === 'photo') {
     initCamera();
   }
@@ -471,7 +502,6 @@ function capturePhoto() {
   const resultList = document.getElementById('result-list');
   
   if (resultList) {
-    // 模拟识别到的任务
     const mockTasks = [
       { name: '语文生字抄写', subject: '语文', duration: 15 },
       { name: '数学计算题', subject: '数学', duration: 20 },
@@ -479,10 +509,7 @@ function capturePhoto() {
     ];
     
     const subjectIcons = {
-      '语文': '📖',
-      '数学': '🔢',
-      '英语': '🔤',
-      '其他': '📝'
+      '语文': '📖', '数学': '🔢', '英语': '🔤', '其他': '📝'
     };
     
     resultList.innerHTML = mockTasks.map((task, index) => `
@@ -501,9 +528,7 @@ function capturePhoto() {
     AppState.tempTasks = [...mockTasks];
   }
   
-  if (result) {
-    result.style.display = 'block';
-  }
+  if (result) result.style.display = 'block';
 }
 
 function retakePhoto() {
@@ -517,10 +542,7 @@ function openGallery() {
   input.type = 'file';
   input.accept = 'image/*';
   input.onchange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      capturePhoto();
-    }
+    if (e.target.files[0]) capturePhoto();
   };
   input.click();
 }
@@ -592,7 +614,6 @@ function initTaskTypeOptions() {
   typeInputs.forEach(input => {
     input.addEventListener('change', () => {
       AppState.selectedTaskType = input.value;
-      
       if (reciteUpload) {
         reciteUpload.style.display = input.value === 'recite' ? 'block' : 'none';
       }
@@ -620,18 +641,6 @@ function confirmQuickTasks() {
   saveUserData();
   navigateTo('home');
   updateUI();
-}
-
-// ==========================================
-// 开始任务
-// ==========================================
-function startMission() {
-  if (AppState.tasks.length === 0) {
-    return;
-  }
-  
-  navigateTo('study');
-  startStudySession();
 }
 
 // ==========================================
@@ -758,7 +767,6 @@ function endStudy() {
   const studyMinutes = Math.floor(AppState.totalStudyTime / 60);
   const earnedStars = completedTasks * 10 + studyMinutes * 2;
   
-  // 更新用户数据
   const oldLevel = AppState.user.level;
   AppState.user.stars += earnedStars;
   AppState.user.totalMissions += completedTasks;
@@ -768,25 +776,16 @@ function endStudy() {
     AppState.user.streakDays++;
   }
   
-  // 检查是否升级
   const newLevel = updateAgentLevel();
   const leveledUp = newLevel > oldLevel;
   
   // 更新完成页面
-  if (DOM.completeStats.duration) {
-    DOM.completeStats.duration.textContent = studyMinutes;
-  }
-  if (DOM.completeStats.tasks) {
-    DOM.completeStats.tasks.textContent = completedTasks;
-  }
-  if (DOM.completeStats.focus) {
-    DOM.completeStats.focus.textContent = `${Math.floor(80 + Math.random() * 18)}%`;
-  }
-  if (DOM.completeStats.stars) {
-    DOM.completeStats.stars.textContent = `+${earnedStars}`;
-  }
+  if (DOM.completeStats.duration) DOM.completeStats.duration.textContent = studyMinutes;
+  if (DOM.completeStats.tasks) DOM.completeStats.tasks.textContent = completedTasks;
+  if (DOM.completeStats.focus) DOM.completeStats.focus.textContent = `${Math.floor(80 + Math.random() * 18)}%`;
+  if (DOM.completeStats.stars) DOM.completeStats.stars.textContent = `+${earnedStars}`;
   
-  // 显示升级提示
+  // 升级提示
   const levelUpNotice = document.getElementById('level-up-notice');
   const newLevelName = document.getElementById('new-level');
   if (levelUpNotice && newLevelName && leveledUp) {
@@ -796,7 +795,6 @@ function endStudy() {
     levelUpNotice.style.display = 'none';
   }
   
-  // 清空任务
   AppState.tasks = [];
   AppState.currentTask = null;
   
@@ -863,15 +861,7 @@ function saveTask() {
   
   if (nameInput) nameInput.value = '';
   closeAddTaskModal();
-  
-  if (AppState.currentPage === 'photo') {
-    if (AppState.tempTasks) {
-      AppState.tempTasks.push(newTask);
-    }
-    capturePhoto();
-  } else {
-    updateUI();
-  }
+  updateUI();
 }
 
 // ==========================================

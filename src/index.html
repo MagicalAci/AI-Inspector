@@ -82,28 +82,25 @@
     </div>
     
     <!-- ==========================================
-         首页
+         首页 - 极简版
          ========================================== -->
     <div class="page page-home active" id="page-home">
       <!-- 顶部栏 -->
       <header class="home-header">
         <button class="user-avatar-btn" id="btn-open-sidebar">
-          <img src="assets/images/user-avatar.svg" alt="用户头像" id="home-user-avatar">
+          <img src="assets/images/user-avatar.svg" alt="用户头像">
         </button>
         <div class="header-right">
-          <button class="balance-btn" id="btn-balance">
+          <button class="balance-btn" id="btn-recharge">
             <i class="fa-solid fa-coins"></i>
             <span id="user-balance">0</span>
-          </button>
-          <button class="recharge-btn" id="btn-recharge">
-            首充
           </button>
         </div>
       </header>
       
-      <!-- 虚拟人区域 -->
-      <div class="avatar-section">
-        <div class="avatar-wrapper">
+      <!-- 核心区域：虚拟人 -->
+      <div class="hero-section">
+        <div class="avatar-container">
           <video 
             id="avatar-video" 
             class="avatar-video" 
@@ -116,93 +113,55 @@
             <source src="assets/images/xiaoying-avatar.mp4" type="video/mp4">
           </video>
         </div>
-        <h1 class="avatar-name">小影老师</h1>
-        <p class="avatar-greeting" id="avatar-greeting">今天也要加油学习哦~</p>
+        <h1 class="hero-title">小影老师</h1>
+        <p class="hero-subtitle" id="avatar-greeting">今天想学什么呀？</p>
       </div>
       
-      <!-- 今日统计 -->
-      <div class="home-stats">
-        <div class="stat-card">
-          <span class="stat-icon">🎯</span>
-          <div class="stat-info">
-            <span class="stat-number" id="today-tasks">0</span>
-            <span class="stat-label">今日任务</span>
-          </div>
-        </div>
-        <div class="stat-card">
-          <span class="stat-icon">⭐</span>
-          <div class="stat-info">
-            <span class="stat-number" id="total-stars">0</span>
-            <span class="stat-label">获得星星</span>
-          </div>
-        </div>
-        <div class="stat-card">
-          <span class="stat-icon">🔥</span>
-          <div class="stat-info">
-            <span class="stat-number" id="streak-days">0</span>
-            <span class="stat-label">连续天数</span>
-          </div>
-        </div>
-      </div>
-      
-      <!-- 任务设置入口 -->
-      <div class="task-entry-section">
-        <h2 class="section-title">设置今日任务</h2>
-        <div class="task-entry-cards">
-          <!-- 拍照识别作业 -->
-          <div class="task-entry-card" id="btn-photo-task">
-            <div class="entry-icon photo">
-              <i class="fa-solid fa-camera"></i>
-            </div>
-            <div class="entry-content">
-              <h3>拍作业单</h3>
-              <p>智能识别，自动生成任务</p>
-            </div>
-          </div>
-          
-          <!-- 快速设置时间 -->
-          <div class="task-entry-card" id="btn-quick-task">
-            <div class="entry-icon time">
-              <i class="fa-solid fa-clock"></i>
-            </div>
-            <div class="entry-content">
-              <h3>快速设置</h3>
-              <p>直接设置学习时长</p>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 语音设置提示 -->
-        <div class="voice-hint" id="btn-voice-task">
-          <i class="fa-solid fa-microphone"></i>
-          <span>或者直接语音告诉小影老师今天要学什么~</span>
-        </div>
-      </div>
-      
-      <!-- 今日任务列表 -->
-      <div class="today-tasks-section" id="today-tasks-section">
-        <h2 class="section-title">今日特工任务</h2>
-        <div class="empty-tasks" id="empty-tasks">
-          <div class="empty-icon">📋</div>
-          <p>还没有设置任务哦~</p>
-          <span>点击上方卡片添加今日学习任务</span>
-        </div>
-        <div class="task-list" id="task-list" style="display: none;">
-          <!-- 动态生成任务列表 -->
-        </div>
-      </div>
-      
-      <!-- 开始任务按钮 -->
-      <div class="home-actions">
-        <button class="btn-start-mission" id="btn-start-mission">
-          <i class="fa-solid fa-rocket"></i>
-          <span>开始今日特工任务</span>
-          <span class="task-count-badge" id="task-count-badge">0</span>
+      <!-- 主操作区 -->
+      <div class="main-actions">
+        <!-- 主按钮：开始督学 -->
+        <button class="btn-main-action" id="btn-start-study">
+          <span class="btn-icon">🚀</span>
+          <span class="btn-text">开始督学</span>
         </button>
+        
+        <!-- 次要操作 -->
+        <div class="secondary-actions">
+          <button class="btn-secondary" id="btn-photo-task">
+            <i class="fa-solid fa-camera"></i>
+            <span>拍作业</span>
+          </button>
+          <button class="btn-secondary" id="btn-quick-task">
+            <i class="fa-solid fa-clock"></i>
+            <span>定时学</span>
+          </button>
+          <button class="btn-secondary" id="btn-voice-task">
+            <i class="fa-solid fa-microphone"></i>
+            <span>语音说</span>
+          </button>
+        </div>
       </div>
       
-      <!-- AI提示 -->
-      <p class="ai-disclaimer">小影老师由 AI 驱动</p>
+      <!-- 底部统计 -->
+      <div class="bottom-stats">
+        <div class="mini-stat">
+          <span class="mini-stat-icon">🔥</span>
+          <span class="mini-stat-value" id="streak-days">0</span>
+          <span class="mini-stat-label">天</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="mini-stat">
+          <span class="mini-stat-icon">⭐</span>
+          <span class="mini-stat-value" id="total-stars">0</span>
+          <span class="mini-stat-label">星</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="mini-stat">
+          <span class="mini-stat-icon">📚</span>
+          <span class="mini-stat-value" id="today-tasks">0</span>
+          <span class="mini-stat-label">任务</span>
+        </div>
+      </div>
     </div>
     
     <!-- ==========================================

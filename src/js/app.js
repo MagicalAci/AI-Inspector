@@ -120,6 +120,8 @@ function initEventListeners() {
   document.getElementById('btn-photo-task')?.addEventListener('click', () => navigateTo('photo'));
   document.getElementById('btn-quick-task')?.addEventListener('click', () => navigateTo('quick'));
   document.getElementById('btn-start-mission')?.addEventListener('click', startMission);
+  document.getElementById('btn-start-study')?.addEventListener('click', handleStartStudy);
+  document.getElementById('btn-voice-task')?.addEventListener('click', handleVoiceTask);
   
   // 返回按钮
   document.getElementById('btn-back-photo')?.addEventListener('click', () => navigateTo('home'));
@@ -407,6 +409,24 @@ function startMission() {
   
   navigateTo('study');
   startStudySession();
+}
+
+// 首页开始督学按钮
+function handleStartStudy() {
+  if (AppState.tasks.length === 0) {
+    // 没有任务时，进入快速设置
+    navigateTo('quick');
+  } else {
+    // 有任务时，直接开始
+    navigateTo('study');
+    startStudySession();
+  }
+}
+
+// 语音设置任务
+function handleVoiceTask() {
+  // 语音功能占位
+  alert('语音功能开发中，敬请期待~');
 }
 
 // ==========================================

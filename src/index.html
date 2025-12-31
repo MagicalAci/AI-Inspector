@@ -21,6 +21,7 @@
   <!-- Styles -->
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/homework.css">
   
   <!-- iOS PWA Support -->
   <meta name="apple-mobile-web-app-title" content="AI伴读">
@@ -578,8 +579,187 @@
     
   </div>
   
+    <!-- ==========================================
+         拍照作业页面
+         ========================================== -->
+    <div class="page page-camera" id="page-camera">
+      <!-- 相机预览 -->
+      <div class="camera-preview">
+        <video id="camera-video" autoplay playsinline></video>
+      </div>
+      
+      <!-- 相机覆盖层 -->
+      <div class="camera-overlay">
+        <!-- 扫描框 -->
+        <div class="scan-frame">
+          <div class="scan-corner top-left"></div>
+          <div class="scan-corner top-right"></div>
+          <div class="scan-corner bottom-left"></div>
+          <div class="scan-corner bottom-right"></div>
+        </div>
+        
+        <!-- 提示文字 -->
+        <div class="camera-hint">
+          <div class="camera-hint-icon">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+          </div>
+          <div class="camera-hint-text">手机平行纸面<br>文字对齐参考线</div>
+        </div>
+      </div>
+      
+      <!-- 相机头部 -->
+      <div class="camera-header">
+        <button class="camera-close" id="btn-close-camera">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        <button class="camera-example">
+          <i class="fa-solid fa-play"></i>
+          <span>示例</span>
+        </button>
+      </div>
+      
+      <!-- 功能选项卡 -->
+      <div class="camera-tabs">
+        <button class="camera-tab" data-mode="dictation-check">听写批改</button>
+        <button class="camera-tab" data-mode="handwriting">练字检查</button>
+        <button class="camera-tab active" data-mode="correction">作业批改</button>
+        <button class="camera-tab" data-mode="search">搜题</button>
+        <button class="camera-tab" data-mode="translate">翻译</button>
+      </div>
+      
+      <!-- 相机控制栏 -->
+      <div class="camera-controls">
+        <button class="camera-btn-gallery">
+          <i class="fa-regular fa-image"></i>
+        </button>
+        <button class="camera-btn-capture" id="btn-capture"></button>
+      </div>
+    </div>
+    
+    <!-- ==========================================
+         作业批改结果页面
+         ========================================== -->
+    <div class="page page-homework-result" id="page-homework-result">
+      <!-- 顶部栏 -->
+      <div class="result-header">
+        <button class="back-btn" onclick="Router.navigateTo('home')">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <h1 class="teacher-title">批改结果</h1>
+        <div style="width: 40px;"></div>
+      </div>
+      
+      <!-- 批改结果 -->
+      <div class="correction-card">
+        <div class="correction-header">
+          <div>
+            <div class="correction-label">本次得分</div>
+            <div class="correction-score">85<span>分</span></div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 14px; opacity: 0.9;">正确 4 题</div>
+            <div style="font-size: 14px; opacity: 0.9;">错误 1 题</div>
+          </div>
+        </div>
+        <div class="correction-body" id="correction-list">
+          <!-- 动态生成批改结果 -->
+          <div class="correction-item">
+            <div class="correction-status correct">
+              <i class="fa-solid fa-check"></i>
+            </div>
+            <div class="correction-content">
+              <div class="correction-question">01 填空题：最大的两位数与最小的三位数的积是</div>
+              <div class="correction-answer">你的答案：9900 ✓</div>
+            </div>
+          </div>
+          <div class="correction-item">
+            <div class="correction-status wrong">
+              <i class="fa-solid fa-xmark"></i>
+            </div>
+            <div class="correction-content">
+              <div class="correction-question">04 计算题：88-27+18=</div>
+              <div class="correction-answer wrong">你的答案：78</div>
+              <div class="correction-right-answer">正确答案：79</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 操作按钮 -->
+      <div class="action-section">
+        <button class="btn btn-primary btn-large" onclick="Router.navigateTo('home')">
+          <i class="fa-solid fa-check"></i>
+          完成
+        </button>
+      </div>
+    </div>
+    
+    <!-- ==========================================
+         背诵页面
+         ========================================== -->
+    <div class="page page-recite" id="page-recite">
+      <!-- 顶部栏 -->
+      <div class="recite-header">
+        <button class="back-btn" onclick="Router.navigateTo('tasks')">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <h1 class="teacher-title">背诵练习</h1>
+        <div style="width: 40px;"></div>
+      </div>
+      
+      <!-- 模式选择 -->
+      <div class="mode-selector">
+        <button class="mode-btn active" data-mode="recite">背诵模式</button>
+        <button class="mode-btn" data-mode="dictation">听写模式</button>
+      </div>
+      
+      <!-- 背诵内容 -->
+      <div class="recite-content">
+        <div class="recite-card">
+          <h2 class="recite-title">静夜思</h2>
+          <p class="recite-author">【李白】</p>
+          <div class="recite-text">
+            床前明月光，疑是地上霜。<br>
+            举头望明月，低头思故乡。
+          </div>
+        </div>
+      </div>
+      
+      <!-- 语音状态 -->
+      <div class="voice-status">
+        <div class="voice-wave" style="display: none;">
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+        </div>
+        <p class="voice-text">点击麦克风开始背诵</p>
+        <p id="recognized-text" style="color: var(--text-secondary); font-size: 14px; min-height: 20px;"></p>
+      </div>
+      
+      <!-- 评分结果（隐藏） -->
+      <div id="score-result" style="display: none;"></div>
+      
+      <!-- 控制栏 -->
+      <div class="recite-controls">
+        <button class="recite-btn recite-btn-skip">
+          <i class="fa-solid fa-forward"></i>
+        </button>
+        <button class="recite-btn recite-btn-mic">
+          <i class="fa-solid fa-microphone"></i>
+        </button>
+        <button class="recite-btn recite-btn-play">
+          <i class="fa-solid fa-volume-high"></i>
+        </button>
+      </div>
+    </div>
+    
+  </div>
+  
   <!-- JavaScript -->
   <script src="js/app.js"></script>
+  <script src="js/homework.js"></script>
 </body>
 </html>
 

@@ -96,6 +96,16 @@ const Router = {
       case 'parent':
         ParentDashboard.init();
         break;
+      case 'camera':
+        if (window.HomeworkCamera) {
+          HomeworkCamera.init();
+        }
+        break;
+      case 'recite':
+        if (window.ReciteModule) {
+          ReciteModule.init();
+        }
+        break;
     }
   }
 };
@@ -285,6 +295,22 @@ const TaskBoard = {
   toggleTask(taskElement) {
     const taskId = parseInt(taskElement.dataset.id);
     const task = this.tasks.find(t => t.id === taskId);
+    
+    if (task && !task.completed) {
+      // 根据任务类型跳转到对应页面
+      if (task.name.includes('背诵')) {
+        Router.navigateTo('recite');
+        return;
+      }
+      if (task.name.includes('口算') || task.name.includes('作业')) {
+        Router.navigateTo('camera');
+        return;
+      }
+      if (task.name.includes('听写')) {
+        Router.navigateTo('recite');
+        return;
+      }
+    }
     
     if (task) {
       task.completed = !task.completed;
@@ -489,6 +515,20 @@ const HomePage = {
     }
     
     Router.navigateTo('teacher');
+  },
+  
+  /**
+   * 打开拍照页面
+   */
+  openCamera() {
+    Router.navigateTo('camera');
+  },
+  
+  /**
+   * 打开背诵页面
+   */
+  openRecite() {
+    Router.navigateTo('recite');
   }
 };
 

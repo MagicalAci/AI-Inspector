@@ -201,6 +201,111 @@ const CozeRealtime = (() => {
   // 语音合成队列
   let speechQueue = [];
   let isSpeaking = false;
+  
+  // 音频元素（用于播放AI语音）
+  let audioElement = null;
+  
+  // 媒体流（用于摄像头和麦克风）
+  let localMediaStream = null;
+
+  // ==========================================
+  // 权限请求
+  // ==========================================
+  
+  /**
+   * 请求摄像头和麦克风权限
+   * 在督学开始时立即调用
+   */
+  async function requestPermissions() {
+    console.log('[CozeRealtime] 请求媒体权限...');
+    
+    try {
+      // 请求摄像头和麦克风权限
+      localMediaStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'user',
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+      
+      console.log('[CozeRealtime] 媒体权限已获取');
+      
+      // 将视频流绑定到学生摄像头预览
+      const studentVideo = document.getElementById('student-video') || 
+                          document.querySelector('.student-cam-top video');
+      if (studentVideo && localMediaStream) {
+        studentVideo.srcObject = localMediaStream;
+        studentVideo.muted = true; // 静音本地预览
+        studentVideo.play().catch(e => console.warn('视频播放失败:', e));
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('[CozeRealtime] 媒体权限请求失败:', error);
+      
+      // 显示权限提示
+      if (error.name === 'NotAllowedError') {
+        showAIBubble('小特工，需要开启摄像头和麦克风权限哦~ 📷🎤', 'high');
+      } else if (error.name === 'NotFoundError') {
+        showAIBubble('没有检测到摄像头或麦克风设备 😢', 'high');
+      }
+      
+      return false;
+    }
+  }
+  
+  /**
+   * 初始化音频播放器
+   */
+  function initAudioPlayer() {
+    if (!audioElement) {
+      audioElement = document.createElement('audio');
+      audioElement.id = 'coze-audio-player';
+      audioElement.autoplay = true;
+      audioElement.style.display = 'none';
+      document.body.appendChild(audioElement);
+      console.log('[CozeRealtime] 音频播放器已初始化');
+    }
+    return audioElement;
+  }
+  
+  /**
+   * 播放音频URL或Blob
+   */
+  async function playAudio(audioData) {
+    const player = initAudioPlayer();
+    
+    return new Promise((resolve, reject) => {
+      if (typeof audioData === 'string') {
+        // URL
+        player.src = audioData;
+      } else if (audioData instanceof Blob) {
+        // Blob
+        player.src = URL.createObjectURL(audioData);
+      } else if (audioData instanceof MediaStream) {
+        // MediaStream
+        player.srcObject = audioData;
+      }
+      
+      player.onended = () => {
+        console.log('[CozeRealtime] 音频播放完成');
+        resolve();
+      };
+      
+      player.onerror = (e) => {
+        console.error('[CozeRealtime] 音频播放错误:', e);
+        reject(e);
+      };
+      
+      player.play().catch(reject);
+    });
+  }
 
   // ==========================================
   // 上下文存储和恢复
@@ -718,45 +823,47 @@ const CozeRealtime = (() => {
   }
   
   /**
-   * Coze语音播报 - 通过chat API让智能体说话
-   * 智能体需要在Coze平台开启语音通话功能
+   * Coze语音播报 - 使用豆包TTS API生成语音
    */
   async function cozeSpeak(text) {
-    // 检查是否有活跃的实时房间
-    const activeChannel = channels.supervisor.isActive ? 'supervisor' : 
-                          (channels.helper.isActive ? 'helper' : 
-                          (channels.task.isActive ? 'task' : null));
-    
-    const channel = activeChannel ? channels[activeChannel] : null;
-    
     // 显示文字气泡（作为视觉反馈）
     showAIBubble(text);
     
     // 更新状态指示器
     StatusIndicator.update('speaking', '说话中');
     
-    // 获取对应的bot ID
-    const botId = channel ? CONFIG.BOTS[activeChannel] : CONFIG.BOTS.supervisor;
-    const conversationId = channel ? channel.conversationId : null;
-    
-    // 通过chat API让智能体回复
-    // 如果智能体开启了语音通话，会通过音频房间返回语音
     try {
-      console.log('[Coze语音] 发送到智能体:', botId);
+      console.log('[Coze语音] 调用TTS:', text.substring(0, 30) + '...');
       
-      const result = await sendMessage(
-        botId,
-        `请直接说出以下内容（不要添加任何其他话）：${text}`,
-        conversationId
-      );
+      // 调用豆包TTS API
+      const response = await fetch('https://api.coze.cn/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${CONFIG.API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          input: text,
+          voice_id: CONFIG.VOICE_ID,
+          response_format: 'mp3',
+          speed: 1.0
+        })
+      });
       
-      if (result.conversationId && channel) {
-        channel.conversationId = result.conversationId;
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Coze语音] TTS API错误:', response.status, errorText);
+        throw new Error(`TTS API error: ${response.status}`);
       }
       
-      // 等待语音播放完成（估算时间）
-      const estimatedDuration = Math.max(2000, text.length * 120);
-      await new Promise(resolve => setTimeout(resolve, estimatedDuration));
+      // 获取音频blob
+      const audioBlob = await response.blob();
+      console.log('[Coze语音] 获取到音频:', audioBlob.size, 'bytes');
+      
+      // 播放音频
+      await playAudio(audioBlob);
+      
+      console.log('[Coze语音] 播放完成');
       
       // 恢复状态
       if (channels.helper.isActive) {
@@ -767,13 +874,22 @@ const CozeRealtime = (() => {
         StatusIndicator.update('supervising');
       }
       
-      console.log('[Coze语音] 请求已发送');
       return true;
       
     } catch (error) {
-      console.error('[Coze语音] 请求失败:', error);
+      console.error('[Coze语音] 播放失败:', error);
+      
       // 恢复状态
-      StatusIndicator.update('supervising');
+      if (channels.helper.isActive) {
+        StatusIndicator.update('listening');
+      } else if (channels.task.isActive) {
+        StatusIndicator.update('speaking', getTaskModeName(channels.task.type));
+      } else {
+        StatusIndicator.update('supervising');
+      }
+      
+      // 仍然显示文字反馈
+      console.log('[Coze语音] 文字已显示在气泡中');
       return false;
     }
   }
@@ -898,6 +1014,15 @@ const CozeRealtime = (() => {
 
     try {
       console.log('[CozeRealtime] Starting supervisor mode...');
+      
+      // 🎙️ 首先请求摄像头和麦克风权限
+      const hasPermission = await requestPermissions();
+      if (!hasPermission) {
+        console.warn('[CozeRealtime] 权限请求失败，但继续监督模式');
+      }
+      
+      // 初始化音频播放器
+      initAudioPlayer();
       
       // 恢复上下文（如果有）
       const savedContext = loadContext('supervisor');
@@ -1840,6 +1965,9 @@ const CozeRealtime = (() => {
   // ==========================================
   
   return {
+    // 权限
+    requestPermissions,
+    
     // 监督模式
     startSupervisor,
     stopSupervisor,
@@ -1865,6 +1993,7 @@ const CozeRealtime = (() => {
     
     // 语音
     speak,
+    playAudio,
     
     // 配置
     CONFIG

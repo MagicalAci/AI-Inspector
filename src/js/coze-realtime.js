@@ -359,36 +359,10 @@ const CozeRealtime = (() => {
         }
       });
       
-      // 尝试发送offer到Coze服务器
-      try {
-        const signalingResult = await sendSignaling(room.room_id, {
-          type: 'offer',
-          sdp: pc.localDescription.sdp,
-          ice_candidates: iceCandidates.map(c => c.toJSON())
-        });
-        
-        if (signalingResult && signalingResult.answer) {
-          await pc.setRemoteDescription(new RTCSessionDescription({
-            type: 'answer',
-            sdp: signalingResult.answer.sdp
-          }));
-          
-          // 添加远程ICE候选者
-          if (signalingResult.ice_candidates) {
-            for (const candidate of signalingResult.ice_candidates) {
-              await pc.addIceCandidate(new RTCIceCandidate(candidate));
-            }
-          }
-          
-          console.log(`[CozeRealtime] ${channelType} 信令交换完成`);
-        } else {
-          console.log(`[CozeRealtime] ${channelType} 信令交换未完成，使用chat API`);
-          channel.usesChatAPI = true;
-        }
-      } catch (sigError) {
-        console.log(`[CozeRealtime] ${channelType} 信令API不可用，使用chat API`);
-        channel.usesChatAPI = true;
-      }
+      // Coze实时API不支持自定义信令，直接使用chat API进行语音交互
+      // 音频通过chat API的TTS功能播放
+      channel.usesChatAPI = true;
+      console.log(`[CozeRealtime] ${channelType} 使用chat API进行语音交互`);
       
       console.log(`[CozeRealtime] ${channelType} WebRTC设置完成`);
       
@@ -398,31 +372,8 @@ const CozeRealtime = (() => {
     }
   }
   
-  /**
-   * 发送信令到Coze服务器
-   */
-  async function sendSignaling(roomId, data) {
-    try {
-      const response = await fetch(`${CONFIG.BASE_URL}/v1/audio/rooms/${roomId}/signaling`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${CONFIG.API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      
-      const result = await response.json();
-      return result.data;
-    } catch (error) {
-      console.error('[CozeRealtime] 信令发送失败:', error);
-      return null;
-    }
-  }
+  // 注意：Coze实时API不支持自定义WebRTC信令
+  // 语音交互通过chat API实现，TTS由Coze服务端处理
   
   /**
    * 关闭WebRTC连接

@@ -1,0 +1,8 @@
+{
+  "$schema": "https://schema.zeabur.app/zeabur.json",
+  "build": {
+    "type": "static",
+    "output_dir": "src"
+  }
+}
+

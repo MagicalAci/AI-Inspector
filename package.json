@@ -1,11 +1,11 @@
 {
   "name": "ai-study-buddy",
   "version": "1.0.0",
-  "description": "AI伴读小精灵 - 面向儿童的AI学习陪伴APP",
+  "description": "AI督学 - 小影老师学习陪伴系统",
   "main": "src/index.html",
   "scripts": {
-    "start": "npx http-server src -p 8080 -c-1",
-    "dev": "npx http-server src -p 8080 -c-1"
+    "start": "http-server src -p ${PORT:-8080} -c-1 --cors",
+    "dev": "http-server src -p 8080 -c-1 --cors"
   },
   "keywords": [
     "education",
@@ -16,6 +16,8 @@
   ],
   "author": "",
   "license": "MIT",
-  "devDependencies": {}
+  "dependencies": {
+    "http-server": "^14.1.1"
+  }
 }
 

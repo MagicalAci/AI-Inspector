@@ -1,0 +1,49 @@
+<svg width="280" height="280" viewBox="0 0 280 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景圆 -->
+  <circle cx="140" cy="140" r="130" fill="url(#bg-gradient-1)"/>
+  
+  <!-- 书桌 -->
+  <rect x="60" y="170" width="160" height="12" rx="4" fill="#8B7355"/>
+  <rect x="50" y="180" width="180" height="8" rx="2" fill="#A0845A"/>
+  
+  <!-- 书本堆 -->
+  <rect x="75" y="145" width="50" height="8" rx="2" fill="#60A5FA" transform="rotate(-5 75 145)"/>
+  <rect x="78" y="138" width="45" height="8" rx="2" fill="#34D399" transform="rotate(3 78 138)"/>
+  <rect x="73" y="130" width="55" height="9" rx="2" fill="#F472B6" transform="rotate(-2 73 130)"/>
+  
+  <!-- 孩子 - 简化卡通风格 -->
+  <ellipse cx="155" cy="165" rx="25" ry="10" fill="#FFE4C4"/>
+  <!-- 头 -->
+  <circle cx="155" cy="115" r="35" fill="#FFE4C4"/>
+  <!-- 头发 -->
+  <path d="M120 100 Q125 75 155 70 Q185 75 190 100 Q175 85 155 85 Q135 85 120 100Z" fill="#4A3728"/>
+  <!-- 眼睛 - 疲惫的 -->
+  <ellipse cx="143" cy="115" rx="6" ry="4" fill="#4A3728"/>
+  <ellipse cx="167" cy="115" rx="6" ry="4" fill="#4A3728"/>
+  <!-- 眉毛 - 皱着的 -->
+  <path d="M135 105 Q140 108 148 106" stroke="#4A3728" stroke-width="2" fill="none"/>
+  <path d="M162 106 Q170 108 175 105" stroke="#4A3728" stroke-width="2" fill="none"/>
+  <!-- 嘴巴 - 不开心 -->
+  <path d="M147 130 Q155 125 163 130" stroke="#E57373" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- 汗滴 -->
+  <path d="M185 95 Q190 105 185 115 Q180 105 185 95Z" fill="#81D4FA"/>
+  
+  <!-- 时钟 -->
+  <circle cx="210" cy="80" r="25" fill="white" stroke="#E0E0E0" stroke-width="3"/>
+  <circle cx="210" cy="80" r="20" fill="white"/>
+  <line x1="210" y1="80" x2="210" y2="65" stroke="#333" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="210" y1="80" x2="222" y2="85" stroke="#E57373" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="210" cy="80" r="3" fill="#333"/>
+  
+  <!-- 问号和感叹号 -->
+  <text x="70" y="80" font-size="28" fill="#FFAB91">?</text>
+  <text x="220" y="130" font-size="24" fill="#FFAB91">!</text>
+  
+  <defs>
+    <linearGradient id="bg-gradient-1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFECD2"/>
+      <stop offset="100%" stop-color="#FCB69F"/>
+    </linearGradient>
+  </defs>
+</svg>
+

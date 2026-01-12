@@ -1,0 +1,59 @@
+<svg width="280" height="280" viewBox="0 0 280 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景圆 -->
+  <circle cx="140" cy="140" r="130" fill="url(#bg-gradient-3)"/>
+  
+  <!-- 奖杯主体 -->
+  <path d="M105 100 L105 140 Q105 170 140 175 Q175 170 175 140 L175 100 Z" fill="url(#trophy-gradient)"/>
+  
+  <!-- 奖杯把手 -->
+  <path d="M105 110 Q75 110 75 130 Q75 150 105 150" stroke="url(#trophy-gradient)" stroke-width="10" fill="none"/>
+  <path d="M175 110 Q205 110 205 130 Q205 150 175 150" stroke="url(#trophy-gradient)" stroke-width="10" fill="none"/>
+  
+  <!-- 奖杯底座 -->
+  <rect x="120" y="175" width="40" height="8" rx="2" fill="#B8860B"/>
+  <rect x="110" y="183" width="60" height="12" rx="3" fill="#DAA520"/>
+  <rect x="100" y="195" width="80" height="15" rx="4" fill="#B8860B"/>
+  
+  <!-- 星星 - 奖杯上 -->
+  <path d="M140 115 L145 130 L160 130 L148 140 L153 155 L140 145 L127 155 L132 140 L120 130 L135 130Z" fill="white"/>
+  
+  <!-- 周围的星星装饰 -->
+  <path d="M60 70 L63 80 L73 80 L65 86 L68 96 L60 90 L52 96 L55 86 L47 80 L57 80Z" fill="#FFF59D"/>
+  <path d="M220 60 L223 70 L233 70 L225 76 L228 86 L220 80 L212 86 L215 76 L207 70 L217 70Z" fill="#FFF59D"/>
+  <path d="M50 160 L52 167 L59 167 L54 171 L56 178 L50 174 L44 178 L46 171 L41 167 L48 167Z" fill="#FFF59D"/>
+  <path d="M230 150 L232 157 L239 157 L234 161 L236 168 L230 164 L224 168 L226 161 L221 157 L228 157Z" fill="#FFF59D"/>
+  
+  <!-- 彩带 -->
+  <path d="M70 180 Q90 160 100 180 Q110 200 130 180" stroke="#FF6B6B" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M150 180 Q170 200 180 180 Q190 160 210 180" stroke="#4ECDC4" stroke-width="4" fill="none" stroke-linecap="round"/>
+  
+  <!-- 光芒效果 -->
+  <line x1="140" y1="50" x2="140" y2="65" stroke="#FFD54F" stroke-width="3" stroke-linecap="round"/>
+  <line x1="175" y1="60" x2="185" y2="50" stroke="#FFD54F" stroke-width="3" stroke-linecap="round"/>
+  <line x1="105" y1="60" x2="95" y2="50" stroke="#FFD54F" stroke-width="3" stroke-linecap="round"/>
+  <line x1="200" y1="90" x2="215" y2="85" stroke="#FFD54F" stroke-width="2" stroke-linecap="round"/>
+  <line x1="80" y1="90" x2="65" y2="85" stroke="#FFD54F" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- 进度条 -->
+  <rect x="70" y="230" width="140" height="12" rx="6" fill="white" opacity="0.5"/>
+  <rect x="70" y="230" width="120" height="12" rx="6" fill="url(#progress-gradient)"/>
+  <circle cx="190" cy="236" r="8" fill="white" stroke="#34D399" stroke-width="2"/>
+  <path d="M187 236 L189 238 L194 233" stroke="#34D399" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <defs>
+    <linearGradient id="bg-gradient-3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE68A"/>
+      <stop offset="100%" stop-color="#FCD34D"/>
+    </linearGradient>
+    <linearGradient id="trophy-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFD700"/>
+      <stop offset="50%" stop-color="#FFA500"/>
+      <stop offset="100%" stop-color="#FF8C00"/>
+    </linearGradient>
+    <linearGradient id="progress-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#34D399"/>
+      <stop offset="100%" stop-color="#10B981"/>
+    </linearGradient>
+  </defs>
+</svg>
+

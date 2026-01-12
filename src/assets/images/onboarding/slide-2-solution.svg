@@ -1,0 +1,53 @@
+<svg width="280" height="280" viewBox="0 0 280 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景圆 -->
+  <circle cx="140" cy="140" r="130" fill="url(#bg-gradient-2)"/>
+  
+  <!-- 手机/平板框架 -->
+  <rect x="85" y="55" width="110" height="170" rx="16" fill="#1A1A2E"/>
+  <rect x="90" y="65" width="100" height="145" rx="8" fill="url(#screen-gradient)"/>
+  
+  <!-- 屏幕内的老师形象 -->
+  <circle cx="140" cy="115" r="30" fill="#FFE4C4"/>
+  <!-- 老师头发 -->
+  <path d="M110 105 Q115 80 140 75 Q165 80 170 105 Q155 90 140 90 Q125 90 110 105Z" fill="#5D4037"/>
+  <!-- 老师眼睛 - 友好的 -->
+  <circle cx="130" cy="110" r="4" fill="#4A3728"/>
+  <circle cx="150" cy="110" r="4" fill="#4A3728"/>
+  <circle cx="131" cy="109" r="1.5" fill="white"/>
+  <circle cx="151" cy="109" r="1.5" fill="white"/>
+  <!-- 老师微笑 -->
+  <path d="M130 125 Q140 135 150 125" stroke="#E57373" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- 腮红 -->
+  <ellipse cx="120" cy="120" rx="5" ry="3" fill="#FFCDD2" opacity="0.7"/>
+  <ellipse cx="160" cy="120" rx="5" ry="3" fill="#FFCDD2" opacity="0.7"/>
+  
+  <!-- 对话气泡 -->
+  <path d="M145 155 L140 165 L135 155 Q140 158 145 155Z" fill="white"/>
+  <rect x="105" y="148" width="70" height="22" rx="11" fill="white"/>
+  <text x="118" y="163" font-size="9" fill="#34D399" font-weight="bold">加油！你很棒</text>
+  
+  <!-- AI 标识 -->
+  <circle cx="170" cy="75" r="12" fill="#34D399"/>
+  <text x="163" y="80" font-size="10" fill="white" font-weight="bold">AI</text>
+  
+  <!-- 星星装饰 -->
+  <path d="M55 80 L58 90 L68 90 L60 96 L63 106 L55 100 L47 106 L50 96 L42 90 L52 90Z" fill="#FFD54F"/>
+  <path d="M225 100 L227 107 L234 107 L229 111 L231 118 L225 114 L219 118 L221 111 L216 107 L223 107Z" fill="#FFD54F"/>
+  <path d="M200 180 L202 186 L208 186 L203 189 L205 195 L200 192 L195 195 L197 189 L192 186 L198 186Z" fill="#FFD54F"/>
+  
+  <!-- 波浪装饰 -->
+  <path d="M60 200 Q100 190 140 200 Q180 210 220 200" stroke="#34D399" stroke-width="3" fill="none" opacity="0.3"/>
+  <path d="M60 215 Q100 205 140 215 Q180 225 220 215" stroke="#34D399" stroke-width="2" fill="none" opacity="0.2"/>
+  
+  <defs>
+    <linearGradient id="bg-gradient-2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D1FAE5"/>
+      <stop offset="100%" stop-color="#A7F3D0"/>
+    </linearGradient>
+    <linearGradient id="screen-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#E8F5E9"/>
+      <stop offset="100%" stop-color="#C8E6C9"/>
+    </linearGradient>
+  </defs>
+</svg>
+

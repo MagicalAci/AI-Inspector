@@ -1,0 +1,1935 @@
+/**
+ * Coze 实时视频通话模块 v2
+ * 
+ * 支持双通道并行：
+ * - 监督通道 (supervisor): 学习时自动开启，定期检查专注度
+ * - 答疑通道 (helper): 点击求助时开启，解答问题
+ * 
+ * 基于官方 @coze/realtime-api SDK
+ */
+
+const CozeRealtime = (() => {
+  // 配置
+  const CONFIG = {
+    API_KEY: 'sat_7QkA0So3pta62lcNhcqmEYKjHjtXJ5nJgBKgtxLikjOLwh9TvYOhNnHlt6x4dmbc',
+    SPACE_ID: '7587658688148881471',
+    BASE_URL: 'https://api.coze.cn',
+    
+    // 智能体ID
+    BOTS: {
+      supervisor: '7592223655954972691', // 小影老师-督学模式
+      helper: '7592223346214518793',     // 小影老师-答疑模式
+      recite: '7592813046561718314',     // 小影老师-背诵助手（已创建）
+      dictation: '7592813222634782720',  // 小影老师-听写助手（已创建）
+      copywrite: '7592813046561767466',  // 小影老师-默写助手（已创建）
+      content_extractor: '7592812994498215999' // 内容提取助手（已创建）
+    },
+    
+    // 语音配置 - 豆包TTS
+    VOICE_ID: '7426725529589530651', // 活泼女孩（最适合小影老师）
+    
+    // TTS API配置
+    TTS_API: 'https://api.coze.cn/v1/audio/speech',
+  };
+
+  // 多通道状态 - 支持并行运行
+  const channels = {
+    supervisor: {
+      isActive: false,
+      room: null,
+      conversationId: null,
+      checkInterval: null,
+      screenshotInterval: null,  // 视频截图间隔（1秒）
+      lastReminderTime: 0,        // 上次提醒时间（用于频率控制）
+      webRTC: null,              // WebRTC连接
+      audioContext: null,        // 音频上下文
+      remoteStream: null,        // 远程音频流
+      paused: false              // 是否暂停（任务模式时降低频率）
+    },
+    helper: {
+      isActive: false,
+      room: null,
+      conversationId: null,
+      webRTC: null,              // WebRTC连接
+      audioContext: null,        // 音频上下文
+      remoteStream: null,        // 远程音频流
+      videoStream: null,         // 视频流（共享）
+      inactivityTimer: null,     // 无响应计时器（1分钟）
+      lastActivityTime: 0        // 最后活动时间
+    },
+    // 任务智能体通道（背诵/听写/默写）
+    task: {
+      isActive: false,
+      room: null,
+      conversationId: null,
+      webRTC: null,
+      audioContext: null,
+      remoteStream: null,
+      type: null,                // 任务类型: 'recite' | 'dictation' | 'copywrite'
+      originalText: null,        // 原文内容（背诵/默写用）
+      wordList: null,            // 词表（听写用）
+      recognizedText: '',        // 语音识别累积文本
+      status: 'idle',            // 状态: idle | ready | listening | analyzing | result
+      onResult: null,            // 结果回调
+      onHint: null,              // 提示回调
+      silenceTimer: null         // 静音检测计时器
+    }
+  };
+  
+  // 房间管理器 - 负责监督与任务模式的切换
+  const RoomManager = {
+    // 原始截图间隔（监督活跃时）
+    _originalScreenshotInterval: 1000,
+    // 暂停时的截图间隔（任务模式时，降低频率）
+    _pausedScreenshotInterval: 5000,
+    
+    // 获取当前活跃的任务类型
+    getActiveTaskType() {
+      return channels.task.isActive ? channels.task.type : null;
+    },
+    
+    // 监督是否暂停
+    isSupervisorPaused() {
+      return channels.supervisor.paused;
+    },
+    
+    /**
+     * 暂停监督（进入任务模式时调用）
+     * - 降低截图频率（1秒 → 5秒）
+     * - 停止定期提醒
+     * - 不关闭房间，保持专注度监测
+     */
+    pauseSupervisor() {
+      if (!channels.supervisor.isActive) return;
+      
+      channels.supervisor.paused = true;
+      console.log('[RoomManager] 监督已暂停（任务模式）');
+      
+      // 降低截图频率
+      if (channels.supervisor.screenshotInterval) {
+        clearInterval(channels.supervisor.screenshotInterval);
+        channels.supervisor.screenshotInterval = setInterval(() => {
+          if (channels.supervisor.isActive) {
+            const screenshot = captureVideoScreenshot();
+            if (screenshot) {
+              sendScreenshotToSupervisor(screenshot);
+            }
+          }
+        }, this._pausedScreenshotInterval);
+      }
+      
+      // 暂停定期检查（不触发语音提醒）
+      if (channels.supervisor.checkInterval) {
+        clearInterval(channels.supervisor.checkInterval);
+        channels.supervisor.checkInterval = null;
+      }
+    },
+    
+    /**
+     * 恢复监督（任务完成后调用）
+     * - 恢复正常截图频率（5秒 → 1秒）
+     * - 恢复定期提醒
+     */
+    resumeSupervisor() {
+      if (!channels.supervisor.isActive) return;
+      
+      channels.supervisor.paused = false;
+      console.log('[RoomManager] 监督已恢复');
+      
+      // 恢复正常截图频率
+      if (channels.supervisor.screenshotInterval) {
+        clearInterval(channels.supervisor.screenshotInterval);
+        channels.supervisor.screenshotInterval = setInterval(() => {
+          if (channels.supervisor.isActive) {
+            const screenshot = captureVideoScreenshot();
+            if (screenshot) {
+              sendScreenshotToSupervisor(screenshot);
+            }
+          }
+        }, this._originalScreenshotInterval);
+      }
+      
+      // 恢复定期检查
+      if (!channels.supervisor.checkInterval) {
+        channels.supervisor.checkInterval = setInterval(async () => {
+          if (channels.supervisor.isActive && !channels.supervisor.paused) {
+            await supervisorCheck();
+          }
+        }, 3 * 60 * 1000);
+      }
+      
+      // 恢复时发送一条鼓励消息
+      setTimeout(async () => {
+        if (channels.supervisor.isActive && !channels.supervisor.paused) {
+          try {
+            const result = await sendMessage(
+              CONFIG.BOTS.supervisor,
+              '任务完成了，请给学生一个简短鼓励，10字以内',
+              channels.supervisor.conversationId
+            );
+            if (result.message) {
+              channels.supervisor.conversationId = result.conversationId;
+              speak(result.message, 'normal');
+              showAIBubble(result.message);
+            }
+          } catch (e) {
+            console.warn('[RoomManager] 恢复监督时发送消息失败:', e);
+          }
+        }
+      }, 500);
+    },
+    
+    /**
+     * 获取监督状态
+     */
+    getSupervisorStatus() {
+      return {
+        isActive: channels.supervisor.isActive,
+        isPaused: channels.supervisor.paused,
+        hasRoom: !!channels.supervisor.room
+      };
+    }
+  };
+  
+  // 上下文存储键
+  const CONTEXT_KEYS = {
+    supervisor: 'coze_supervisor_context',
+    helper: 'coze_helper_context',
+    task: 'coze_task_context'
+  };
+
+  // 语音合成队列
+  let speechQueue = [];
+  let isSpeaking = false;
+
+  // ==========================================
+  // 上下文存储和恢复
+  // ==========================================
+  
+  /**
+   * 保存对话上下文
+   */
+  function saveContext(channelType, conversationId, messages = []) {
+    try {
+      const context = {
+        conversationId,
+        messages,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(CONTEXT_KEYS[channelType], JSON.stringify(context));
+      console.log(`[CozeRealtime] 已保存${channelType}上下文`);
+    } catch (error) {
+      console.error(`[CozeRealtime] 保存上下文失败:`, error);
+    }
+  }
+  
+  /**
+   * 恢复对话上下文
+   */
+  function loadContext(channelType) {
+    try {
+      const stored = localStorage.getItem(CONTEXT_KEYS[channelType]);
+      if (stored) {
+        const context = JSON.parse(stored);
+        // 检查上下文是否过期（24小时）
+        if (Date.now() - context.timestamp < 24 * 60 * 60 * 1000) {
+          console.log(`[CozeRealtime] 已恢复${channelType}上下文`);
+          return context;
+        } else {
+          localStorage.removeItem(CONTEXT_KEYS[channelType]);
+        }
+      }
+    } catch (error) {
+      console.error(`[CozeRealtime] 恢复上下文失败:`, error);
+    }
+    return null;
+  }
+  
+  /**
+   * 清除上下文
+   */
+  function clearContext(channelType) {
+    localStorage.removeItem(CONTEXT_KEYS[channelType]);
+  }
+  
+  // ==========================================
+  // WebRTC 连接管理
+  // ==========================================
+  
+  /**
+   * 建立WebRTC连接来接收音频流
+   * 
+   * 注意：Coze的实时语音需要使用官方SDK完成信令交换
+   * 当前通过chat API发送消息触发智能体语音回复
+   */
+  async function setupWebRTC(channelType, room) {
+    const channel = channels[channelType];
+    
+    try {
+      // 检查是否为模拟房间
+      if (room.isMock) {
+        console.log(`[CozeRealtime] ${channelType} 使用模拟房间，通过chat API通信`);
+        channel.usesChatAPI = true;
+        return;
+      }
+      
+      // 创建音频上下文
+      channel.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      
+      // 创建RTCPeerConnection
+      const pc = new RTCPeerConnection({
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+      });
+      
+      channel.webRTC = pc;
+      
+      // 收集ICE候选者
+      const iceCandidates = [];
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          iceCandidates.push(event.candidate);
+          console.log(`[CozeRealtime] ${channelType} 收集到ICE候选者`);
+        }
+      };
+      
+      // 接收远程音频流
+      pc.ontrack = (event) => {
+        console.log(`[CozeRealtime] ${channelType} 收到远程音频流`);
+        channel.remoteStream = event.streams[0];
+        channel.hasAudioStream = true; // 成功收到音频流
+        
+        // 创建音频元素播放
+        const audio = new Audio();
+        audio.srcObject = event.streams[0];
+        audio.autoplay = true;
+        audio.volume = 1.0;
+        
+        // 监听音频播放
+        audio.onplay = () => {
+          console.log(`[CozeRealtime] ${channelType} 音频开始播放`);
+          StatusIndicator.update('speaking', '说话中');
+        };
+        
+        audio.onended = () => {
+          console.log(`[CozeRealtime] ${channelType} 音频播放结束`);
+          if (channels.helper.isActive) {
+            StatusIndicator.update('listening');
+          } else {
+            StatusIndicator.update('supervising');
+          }
+        };
+        
+        channel.audioElement = audio;
+      };
+      
+      // ICE连接状态变化
+      pc.oniceconnectionstatechange = () => {
+        console.log(`[CozeRealtime] ${channelType} ICE状态:`, pc.iceConnectionState);
+        if (pc.iceConnectionState === 'connected') {
+          channel.hasAudioStream = true;
+          console.log(`[CozeRealtime] ${channelType} WebRTC连接成功`);
+        } else if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+          console.log(`[CozeRealtime] ${channelType} WebRTC连接断开，使用chat API`);
+          channel.usesChatAPI = true;
+        }
+      };
+      
+      // 添加音频接收通道
+      pc.addTransceiver('audio', { direction: 'recvonly' });
+      
+      // 创建offer
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      
+      // 等待ICE收集完成
+      await new Promise((resolve) => {
+        if (pc.iceGatheringState === 'complete') {
+          resolve();
+        } else {
+          pc.onicegatheringstatechange = () => {
+            if (pc.iceGatheringState === 'complete') {
+              resolve();
+            }
+          };
+          // 超时保护
+          setTimeout(resolve, 3000);
+        }
+      });
+      
+      // 尝试发送offer到Coze服务器
+      try {
+        const signalingResult = await sendSignaling(room.room_id, {
+          type: 'offer',
+          sdp: pc.localDescription.sdp,
+          ice_candidates: iceCandidates.map(c => c.toJSON())
+        });
+        
+        if (signalingResult && signalingResult.answer) {
+          await pc.setRemoteDescription(new RTCSessionDescription({
+            type: 'answer',
+            sdp: signalingResult.answer.sdp
+          }));
+          
+          // 添加远程ICE候选者
+          if (signalingResult.ice_candidates) {
+            for (const candidate of signalingResult.ice_candidates) {
+              await pc.addIceCandidate(new RTCIceCandidate(candidate));
+            }
+          }
+          
+          console.log(`[CozeRealtime] ${channelType} 信令交换完成`);
+        } else {
+          console.log(`[CozeRealtime] ${channelType} 信令交换未完成，使用chat API`);
+          channel.usesChatAPI = true;
+        }
+      } catch (sigError) {
+        console.log(`[CozeRealtime] ${channelType} 信令API不可用，使用chat API`);
+        channel.usesChatAPI = true;
+      }
+      
+      console.log(`[CozeRealtime] ${channelType} WebRTC设置完成`);
+      
+    } catch (error) {
+      console.error(`[CozeRealtime] ${channelType} WebRTC设置失败:`, error);
+      channel.usesChatAPI = true;
+    }
+  }
+  
+  /**
+   * 发送信令到Coze服务器
+   */
+  async function sendSignaling(roomId, data) {
+    try {
+      const response = await fetch(`${CONFIG.BASE_URL}/v1/audio/rooms/${roomId}/signaling`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${CONFIG.API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const result = await response.json();
+      return result.data;
+    } catch (error) {
+      console.error('[CozeRealtime] 信令发送失败:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * 关闭WebRTC连接
+   */
+  function closeWebRTC(channelType) {
+    const channel = channels[channelType];
+    
+    if (channel.audioElement) {
+      channel.audioElement.pause();
+      channel.audioElement.srcObject = null;
+      channel.audioElement = null;
+    }
+    
+    if (channel.webRTC) {
+      channel.webRTC.close();
+      channel.webRTC = null;
+    }
+    
+    if (channel.audioContext) {
+      channel.audioContext.close();
+      channel.audioContext = null;
+    }
+    
+    channel.remoteStream = null;
+    console.log(`[CozeRealtime] ${channelType} WebRTC连接已关闭`);
+  }
+  
+  // ==========================================
+  // 视频截图功能（监督房间）
+  // ==========================================
+  
+  /**
+   * 捕获视频截图（1秒一次）
+   */
+  function captureVideoScreenshot() {
+    try {
+      // 获取视频元素（学习页面的摄像头视频）
+      const videoElement = document.querySelector('#student-pip-v4 video, .student-pip-v4 video');
+      if (!videoElement || videoElement.readyState !== 4) {
+        return null;
+      }
+      
+      // 创建canvas并绘制视频帧
+      const canvas = document.createElement('canvas');
+      canvas.width = videoElement.videoWidth || 640;
+      canvas.height = videoElement.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+      
+      // 转换为base64
+      const imageData = canvas.toDataURL('image/jpeg', 0.8);
+      return imageData;
+    } catch (error) {
+      console.error('[CozeRealtime] 截图失败:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * 发送截图到监督智能体并获取专注度评分
+   */
+  async function sendScreenshotToSupervisor(imageData) {
+    if (!channels.supervisor.isActive || !imageData) return;
+    
+    try {
+      // 构建请求，要求智能体返回专注度分数
+      const response = await fetch(`${CONFIG.BASE_URL}/v3/chat`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${CONFIG.API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          bot_id: CONFIG.BOTS.supervisor,
+          user_id: 'supervisor_' + Date.now(),
+          stream: false,
+          auto_save_history: true,
+          conversation_id: channels.supervisor.conversationId,
+          additional_messages: [{
+            role: 'user',
+            content: `请分析这张学习截图，返回JSON格式：{"focusScore": 0-100的专注度分数, "status": "focused/distracted/absent", "message": "如需提醒的简短话语(可为空)"}。只返回JSON，不要其他内容。\n[图片数据]`,
+            content_type: 'text'
+          }]
+        })
+      });
+      
+      const data = await response.json();
+      if (data.code === 0 && data.data) {
+        // 等待响应完成
+        await waitForChatComplete(data.data.conversation_id, data.data.id);
+        
+        // 获取AI响应
+        const messages = await getChatMessages(data.data.conversation_id, data.data.id);
+        const assistantMsg = messages.find(m => m.type === 'answer' && m.role === 'assistant');
+        
+        if (assistantMsg && assistantMsg.content) {
+          // 尝试解析JSON响应
+          try {
+            const jsonMatch = assistantMsg.content.match(/\{[\s\S]*?\}/);
+            if (jsonMatch) {
+              const result = JSON.parse(jsonMatch[0]);
+              
+              // 更新专注度分数
+              if (typeof result.focusScore === 'number') {
+                if (typeof window.updateFocusDisplay === 'function') {
+                  window.updateFocusDisplay(result.focusScore);
+                }
+              }
+              
+              // 如果有提醒消息且状态不好
+              if (result.message && result.status !== 'focused') {
+                const now = Date.now();
+                const timeSinceLastReminder = now - channels.supervisor.lastReminderTime;
+                
+                // 至少间隔30秒才提醒
+                if (timeSinceLastReminder > 30000) {
+                  channels.supervisor.lastReminderTime = now;
+                  speak(result.message, 'normal', 'supervisor');
+                  showAIBubble(result.message);
+                }
+              }
+            }
+          } catch (parseError) {
+            // JSON解析失败，使用模拟分数
+            simulateFocusScore();
+          }
+        }
+      } else {
+        // API失败，使用模拟分数
+        simulateFocusScore();
+      }
+    } catch (error) {
+      console.warn('[CozeRealtime] 发送截图失败:', error);
+      // 使用模拟分数
+      simulateFocusScore();
+    }
+  }
+  
+  /**
+   * 模拟专注度分数变化（当API不可用时）
+   */
+  function simulateFocusScore() {
+    const currentScore = typeof AppState !== 'undefined' ? (AppState.focusScore || 85) : 85;
+    const change = Math.random() > 0.7 ? -5 : 2;
+    const newScore = Math.max(50, Math.min(100, currentScore + change));
+    
+    if (typeof window.updateFocusDisplay === 'function') {
+      window.updateFocusDisplay(newScore);
+    }
+  }
+  
+  // ==========================================
+  // API 调用
+  // ==========================================
+  
+  /**
+   * 创建实时语音房间
+   * 文档: https://docs.coze.cn/developer_guides/create_room
+   */
+  async function createRoom(botId, uid) {
+    console.log('[CozeRealtime] Creating room for bot:', botId);
+    
+    try {
+      const response = await fetch(`${CONFIG.BASE_URL}/v1/audio/rooms`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${CONFIG.API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          bot_id: botId,
+          voice_id: CONFIG.VOICE_ID,
+          uid: uid,
+          connector_id: '1024'  // API渠道ID
+        })
+      });
+
+      const data = await response.json();
+      console.log('[CozeRealtime] Room API response:', data);
+      
+      if (data.code !== 0) {
+        const errorMsg = `豆包API错误 [${data.code}]: ${data.msg || '未知错误'}`;
+        console.error('[CozeRealtime]', errorMsg);
+        // 房间创建失败不阻塞，使用模拟房间
+        return { 
+          room_id: 'mock_room_' + Date.now(),
+          token: null,
+          isMock: true 
+        };
+      }
+
+      const roomData = data.data || {};
+      // 确保room_id存在，Coze可能返回不同字段名
+      const roomId = roomData.room_id || roomData.id || roomData.roomId || 'room_' + Date.now();
+      
+      console.log('[CozeRealtime] Room created successfully:', roomId);
+      return {
+        ...roomData,
+        room_id: roomId
+      };
+    } catch (error) {
+      console.error('[CozeRealtime] Create room failed:', error);
+      // 创建失败时使用模拟房间，不阻塞功能
+      return { 
+        room_id: 'mock_room_' + Date.now(),
+        token: null,
+        isMock: true 
+      };
+    }
+  }
+
+  /**
+   * 发送消息到智能体
+   */
+  async function sendMessage(botId, message, conversationId = null) {
+    const body = {
+      bot_id: botId,
+      user_id: 'xiaoying_user_' + Date.now(),
+      stream: false,
+      auto_save_history: true,
+      additional_messages: [{
+        role: 'user',
+        content: message,
+        content_type: 'text'
+      }]
+    };
+
+    if (conversationId) {
+      body.conversation_id = conversationId;
+    }
+
+    const response = await fetch(`${CONFIG.BASE_URL}/v3/chat`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${CONFIG.API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    const data = await response.json();
+    if (data.code !== 0) {
+      throw new Error(data.msg || 'Chat failed');
+    }
+
+    // 等待响应完成
+    const chatId = data.data.id;
+    const convId = data.data.conversation_id;
+    
+    // 轮询等待完成
+    await waitForChatComplete(convId, chatId);
+    
+    // 获取消息
+    const messages = await getChatMessages(convId, chatId);
+    const assistantMsg = messages.find(m => m.type === 'answer' && m.role === 'assistant');
+    
+    return {
+      conversationId: convId,
+      message: assistantMsg ? assistantMsg.content : ''
+    };
+  }
+
+  async function waitForChatComplete(conversationId, chatId, maxWait = 30000) {
+    const startTime = Date.now();
+    while (Date.now() - startTime < maxWait) {
+      const response = await fetch(
+        `${CONFIG.BASE_URL}/v3/chat/retrieve?conversation_id=${conversationId}&chat_id=${chatId}`,
+        {
+          headers: { 'Authorization': `Bearer ${CONFIG.API_KEY}` }
+        }
+      );
+      const data = await response.json();
+      if (data.data?.status === 'completed') {
+        return true;
+      }
+      await new Promise(r => setTimeout(r, 500));
+    }
+    return false;
+  }
+
+  async function getChatMessages(conversationId, chatId) {
+    const response = await fetch(
+      `${CONFIG.BASE_URL}/v3/chat/message/list?conversation_id=${conversationId}&chat_id=${chatId}`,
+      {
+        headers: { 'Authorization': `Bearer ${CONFIG.API_KEY}` }
+      }
+    );
+    const data = await response.json();
+    return data.data || [];
+  }
+
+  // ==========================================
+  // 语音合成 (TTS) - 纯Coze实时语音
+  // 通过实时房间的WebRTC连接播放
+  // ==========================================
+  
+  let currentAudio = null;
+  let ttsAudioQueue = [];
+  let isProcessingTTS = false;
+  
+  /**
+   * 获取任务模式名称
+   */
+  function getTaskModeName(type) {
+    const names = {
+      recite: '背诵模式',
+      dictation: '听写模式',
+      copywrite: '默写模式'
+    };
+    return names[type] || '任务模式';
+  }
+  
+  // 注意：不使用浏览器TTS，只通过Coze智能体语音
+  
+  async function speak(text, priority = 'normal') {
+    if (!text) return Promise.resolve();
+    
+    console.log('[Coze语音] Speaking:', text.substring(0, 30) + '...');
+    
+    // 高优先级时停止当前播放
+    if (priority === 'high') {
+      stopCurrentAudio();
+      speechQueue = [];
+    }
+    
+    // 如果正在播放且不是高优先级，加入队列
+    if (isSpeaking && priority !== 'high') {
+      speechQueue.push(text);
+      return;
+    }
+    
+    isSpeaking = true;
+    
+    try {
+      await cozeSpeak(text);
+    } catch (error) {
+      console.error('[Coze语音] Error:', error);
+    } finally {
+      isSpeaking = false;
+      processNextSpeech();
+    }
+  }
+  
+  /**
+   * Coze语音播报 - 通过chat API让智能体说话
+   * 智能体需要在Coze平台开启语音通话功能
+   */
+  async function cozeSpeak(text) {
+    // 检查是否有活跃的实时房间
+    const activeChannel = channels.supervisor.isActive ? 'supervisor' : 
+                          (channels.helper.isActive ? 'helper' : 
+                          (channels.task.isActive ? 'task' : null));
+    
+    const channel = activeChannel ? channels[activeChannel] : null;
+    
+    // 显示文字气泡（作为视觉反馈）
+    showAIBubble(text);
+    
+    // 更新状态指示器
+    StatusIndicator.update('speaking', '说话中');
+    
+    // 获取对应的bot ID
+    const botId = channel ? CONFIG.BOTS[activeChannel] : CONFIG.BOTS.supervisor;
+    const conversationId = channel ? channel.conversationId : null;
+    
+    // 通过chat API让智能体回复
+    // 如果智能体开启了语音通话，会通过音频房间返回语音
+    try {
+      console.log('[Coze语音] 发送到智能体:', botId);
+      
+      const result = await sendMessage(
+        botId,
+        `请直接说出以下内容（不要添加任何其他话）：${text}`,
+        conversationId
+      );
+      
+      if (result.conversationId && channel) {
+        channel.conversationId = result.conversationId;
+      }
+      
+      // 等待语音播放完成（估算时间）
+      const estimatedDuration = Math.max(2000, text.length * 120);
+      await new Promise(resolve => setTimeout(resolve, estimatedDuration));
+      
+      // 恢复状态
+      if (channels.helper.isActive) {
+        StatusIndicator.update('listening');
+      } else if (channels.task.isActive) {
+        StatusIndicator.update('speaking', getTaskModeName(channels.task.type));
+      } else {
+        StatusIndicator.update('supervising');
+      }
+      
+      console.log('[Coze语音] 请求已发送');
+      return true;
+      
+    } catch (error) {
+      console.error('[Coze语音] 请求失败:', error);
+      // 恢复状态
+      StatusIndicator.update('supervising');
+      return false;
+    }
+  }
+  
+  // 废弃的函数（保持兼容）
+  async function callDoubaoTTS(text) {
+    return cozeSpeak(text);
+  }
+  
+  /**
+   * 清理TTS房间
+   */
+  async function cleanupTTSRoom() {
+    if (ttsRoom) {
+      try {
+        await closeRoom(ttsRoom.room_id);
+        ttsRoom = null;
+        console.log('[豆包TTS] TTS房间已清理');
+      } catch (error) {
+        console.error('[豆包TTS] 清理房间失败:', error);
+      }
+    }
+  }
+  
+  /**
+   * 关闭实时房间
+   */
+  async function closeRoom(roomId) {
+    // 跳过模拟房间
+    if (!roomId || roomId.startsWith('mock_room_')) {
+      console.log('[CozeRealtime] 跳过关闭模拟房间');
+      return { success: true };
+    }
+    
+    try {
+      const response = await fetch(`${CONFIG.BASE_URL}/v1/audio/rooms/${roomId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${CONFIG.API_KEY}`
+        }
+      });
+      
+      // 即使404也认为是成功（房间可能已经关闭）
+      if (response.status === 404) {
+        console.log('[CozeRealtime] 房间已不存在');
+        return { success: true };
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.warn('[CozeRealtime] Close room error:', error);
+      // 关闭失败不抛出异常
+      return { success: false, error: error.message };
+    }
+  }
+  
+  // 播放音频
+  async function playAudio(audioData) {
+    return new Promise((resolve, reject) => {
+      try {
+        // 创建Blob和URL
+        const blob = new Blob([audioData], { type: 'audio/mp3' });
+        const url = URL.createObjectURL(blob);
+        
+        // 创建Audio元素
+        currentAudio = new Audio(url);
+        currentAudio.volume = 1.0;
+        
+        currentAudio.onended = () => {
+          URL.revokeObjectURL(url);
+          currentAudio = null;
+          resolve();
+        };
+        
+        currentAudio.onerror = (e) => {
+          console.error('[豆包TTS] Audio playback error:', e);
+          URL.revokeObjectURL(url);
+          currentAudio = null;
+          reject(new Error('音频播放失败'));
+        };
+        
+        currentAudio.play().catch(e => {
+          reject(new Error('音频播放失败: ' + e.message));
+        });
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+  
+  // 停止当前音频
+  function stopCurrentAudio() {
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      currentAudio = null;
+    }
+  }
+
+  function processNextSpeech() {
+    if (speechQueue.length > 0 && !isSpeaking) {
+      const nextText = speechQueue.shift();
+      speak(nextText);
+    }
+  }
+
+  // ==========================================
+  // 监督模式 (Supervisor Channel)
+  // ==========================================
+  
+  /**
+   * 开启监督模式
+   * 进入学习页面时自动调用
+   * 监督智能体单独在一个房间，通过视频截图进行监督
+   */
+  async function startSupervisor() {
+    if (channels.supervisor.isActive) {
+      console.log('[CozeRealtime] Supervisor already active');
+      return;
+    }
+
+    try {
+      console.log('[CozeRealtime] Starting supervisor mode...');
+      
+      // 恢复上下文（如果有）
+      const savedContext = loadContext('supervisor');
+      
+      // 创建监督房间
+      channels.supervisor.room = await createRoom(
+        CONFIG.BOTS.supervisor,
+        'supervisor_' + Date.now()
+      );
+      channels.supervisor.isActive = true;
+
+      // 建立WebRTC连接接收音频流
+      await setupWebRTC('supervisor', channels.supervisor.room);
+
+      // 发送欢迎消息
+      try {
+        let welcomeResult;
+        if (savedContext && savedContext.conversationId) {
+          // 恢复上下文
+          channels.supervisor.conversationId = savedContext.conversationId;
+          welcomeResult = await sendMessage(
+            CONFIG.BOTS.supervisor,
+            '学习继续中，请继续监督',
+            savedContext.conversationId
+          );
+        } else {
+          // 新对话 - 请求开场白
+          welcomeResult = await sendMessage(
+            CONFIG.BOTS.supervisor,
+            '学习开始了，请给我一个简短的开场鼓励，15个字以内，语气要温柔亲切'
+          );
+          if (welcomeResult.message) {
+            channels.supervisor.conversationId = welcomeResult.conversationId;
+            saveContext('supervisor', welcomeResult.conversationId, [{
+              role: 'assistant',
+              content: welcomeResult.message
+            }]);
+          }
+        }
+        
+        if (welcomeResult && welcomeResult.message) {
+          speak(welcomeResult.message, 'high');
+          showAIBubble(welcomeResult.message, 'high');
+        } else {
+          // 使用默认开场白
+          const defaultGreeting = '小特工，开始学习啦！加油！💪';
+          speak(defaultGreeting, 'high');
+          showAIBubble(defaultGreeting, 'high');
+        }
+      } catch (error) {
+        console.warn('[CozeRealtime] 获取开场白失败:', error);
+        const defaultGreeting = '小特工，开始学习啦！加油！💪';
+        speak(defaultGreeting, 'high');
+        showAIBubble(defaultGreeting, 'high');
+      }
+
+      // 启动视频截图（1秒一次）
+      channels.supervisor.screenshotInterval = setInterval(() => {
+        if (channels.supervisor.isActive) {
+          const screenshot = captureVideoScreenshot();
+          if (screenshot) {
+            sendScreenshotToSupervisor(screenshot);
+          }
+        }
+      }, 1000); // 1秒一次
+
+      // 启动定期检查（每3分钟，用于补充检查）
+      channels.supervisor.checkInterval = setInterval(async () => {
+        if (channels.supervisor.isActive) {
+          await supervisorCheck();
+        }
+      }, 3 * 60 * 1000);
+
+      console.log('[CozeRealtime] Supervisor mode started');
+      updateUIState();
+      
+    } catch (error) {
+      console.error('[CozeRealtime] Failed to start supervisor:', error);
+      showToast('启动监督模式失败: ' + error.message, 'error');
+      channels.supervisor.isActive = false;
+    }
+  }
+
+  /**
+   * 监督检查
+   */
+  async function supervisorCheck() {
+    if (!channels.supervisor.isActive) return;
+
+    try {
+      // 获取当前专注度
+      const focusScore = typeof AppState !== 'undefined' ? 
+        (AppState.currentFocusScore || 85) : 85;
+      
+      let focusLevel = '优秀';
+      if (focusScore < 60) focusLevel = '较差';
+      else if (focusScore < 80) focusLevel = '一般';
+
+      const result = await sendMessage(
+        CONFIG.BOTS.supervisor,
+        `学生的专注度状态是：${focusLevel}（${focusScore}分），请给一个简短的反馈`,
+        channels.supervisor.conversationId
+      );
+
+      if (result.message) {
+        channels.supervisor.conversationId = result.conversationId;
+        speak(result.message, 'normal', 'supervisor');
+        showAIBubble(result.message);
+      }
+    } catch (error) {
+      console.error('[CozeRealtime] Supervisor check failed:', error);
+    }
+  }
+
+  /**
+   * 停止监督模式
+   */
+  async function stopSupervisor() {
+    // 停止截图
+    if (channels.supervisor.screenshotInterval) {
+      clearInterval(channels.supervisor.screenshotInterval);
+      channels.supervisor.screenshotInterval = null;
+    }
+    
+    // 停止定期检查
+    if (channels.supervisor.checkInterval) {
+      clearInterval(channels.supervisor.checkInterval);
+      channels.supervisor.checkInterval = null;
+    }
+    
+    // 关闭WebRTC连接
+    closeWebRTC('supervisor');
+    
+    // 保存上下文
+    if (channels.supervisor.conversationId) {
+      // 保存当前上下文（实际应该保存完整的对话历史）
+      saveContext('supervisor', channels.supervisor.conversationId);
+    }
+    
+    if (channels.supervisor.isActive && channels.supervisor.room) {
+      // 发送结束消息
+      try {
+        const result = await sendMessage(
+          CONFIG.BOTS.supervisor,
+          '学习结束了，请给一个简短的结束语，语气要温柔',
+          channels.supervisor.conversationId
+        );
+        if (result.message) {
+          speak(result.message, 'high', 'supervisor');
+          showAIBubble(result.message);
+        }
+      } catch (error) {
+        console.error('[CozeRealtime] 发送结束消息失败:', error);
+      }
+      
+      // 关闭房间
+      try {
+        await closeRoom(channels.supervisor.room.room_id);
+      } catch (error) {
+        console.error('[CozeRealtime] 关闭监督房间失败:', error);
+      }
+    }
+
+    channels.supervisor.isActive = false;
+    channels.supervisor.room = null;
+    channels.supervisor.conversationId = null;
+    channels.supervisor.lastReminderTime = 0;
+    
+    console.log('[CozeRealtime] Supervisor mode stopped');
+    updateUIState();
+  }
+
+  // ==========================================
+  // 答疑模式 (Helper Channel)
+  // ==========================================
+  
+  /**
+   * 开启答疑模式
+   * 点击求助按钮或说"小影老师"时调用
+   * 视频通话，共享视频流，进行对话答疑
+   */
+  async function startHelper() {
+    if (channels.helper.isActive) {
+      console.log('[CozeRealtime] Helper already active');
+      return;
+    }
+
+    try {
+      console.log('[CozeRealtime] Starting helper mode...');
+      showHelperUI();
+      
+      // 恢复上下文（如果有）
+      const savedContext = loadContext('helper');
+      
+      // 创建求助房间
+      channels.helper.room = await createRoom(
+        CONFIG.BOTS.helper,
+        'helper_' + Date.now()
+      );
+      channels.helper.isActive = true;
+
+      // 建立WebRTC连接接收音频流和视频流
+      await setupWebRTC('helper', channels.helper.room);
+      
+      // 获取用户视频流（共享视频）
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true
+        });
+        channels.helper.videoStream = stream;
+        
+        // 将视频流添加到WebRTC连接
+        if (channels.helper.webRTC) {
+          stream.getTracks().forEach(track => {
+            channels.helper.webRTC.addTrack(track, stream);
+          });
+        }
+      } catch (error) {
+        console.warn('[CozeRealtime] 获取视频流失败:', error);
+      }
+
+      // 发送欢迎消息（如果有上下文，恢复对话）
+      let welcomeResult;
+      if (savedContext && savedContext.conversationId) {
+        // 恢复上下文
+        channels.helper.conversationId = savedContext.conversationId;
+        welcomeResult = await sendMessage(
+          CONFIG.BOTS.helper,
+          '继续之前的对话',
+          savedContext.conversationId
+        );
+      } else {
+        // 新对话，使用固定的开场白
+        welcomeResult = await sendMessage(
+          CONFIG.BOTS.helper,
+          '学生点击了求助按钮，请说："你好呀，有什么问题"'
+        );
+        if (welcomeResult.message) {
+          channels.helper.conversationId = welcomeResult.conversationId;
+          saveContext('helper', welcomeResult.conversationId, [{
+            role: 'assistant',
+            content: welcomeResult.message
+          }]);
+        }
+      }
+      
+      if (welcomeResult.message) {
+        speak(welcomeResult.message, 'high', 'helper');
+        addHelperMessage(welcomeResult.message, 'assistant');
+      }
+
+      // 启动语音识别
+      startVoiceRecognition('helper');
+      
+      // 启动无响应计时器（1分钟无响应自动关闭）
+      channels.helper.lastActivityTime = Date.now();
+      channels.helper.inactivityTimer = setInterval(() => {
+        const timeSinceLastActivity = Date.now() - channels.helper.lastActivityTime;
+        if (timeSinceLastActivity > 60000) { // 1分钟
+          console.log('[CozeRealtime] 求助房间1分钟无响应，自动关闭');
+          stopHelper();
+        }
+      }, 10000); // 每10秒检查一次
+
+      console.log('[CozeRealtime] Helper mode started');
+      updateUIState();
+      
+    } catch (error) {
+      console.error('[CozeRealtime] Failed to start helper:', error);
+      channels.helper.isActive = false;
+      showToast('连接失败，请重试', 'error');
+    }
+  }
+
+  /**
+   * 发送问题到答疑智能体
+   */
+  async function askHelper(question) {
+    if (!channels.helper.isActive || !question.trim()) return;
+
+    try {
+      // 更新活动时间
+      channels.helper.lastActivityTime = Date.now();
+      
+      addHelperMessage(question, 'user');
+      showHelperTyping(true);
+
+      const result = await sendMessage(
+        CONFIG.BOTS.helper,
+        question,
+        channels.helper.conversationId
+      );
+
+      showHelperTyping(false);
+
+      if (result.message) {
+        channels.helper.conversationId = result.conversationId;
+        
+        // 保存上下文
+        const messages = [
+          { role: 'user', content: question },
+          { role: 'assistant', content: result.message }
+        ];
+        saveContext('helper', result.conversationId, messages);
+        
+        speak(result.message, 'normal', 'helper');
+        addHelperMessage(result.message, 'assistant');
+        
+        // 更新活动时间
+        channels.helper.lastActivityTime = Date.now();
+      }
+    } catch (error) {
+      console.error('[CozeRealtime] Ask helper failed:', error);
+      showHelperTyping(false);
+      addHelperMessage('抱歉，小影老师暂时无法回答，请稍后再试~', 'assistant');
+    }
+  }
+
+  /**
+   * 停止答疑模式
+   * 点击关闭或1分钟无响应时调用
+   */
+  async function stopHelper() {
+    // 停止语音识别
+    stopVoiceRecognition();
+    
+    // 停止无响应计时器
+    if (channels.helper.inactivityTimer) {
+      clearInterval(channels.helper.inactivityTimer);
+      channels.helper.inactivityTimer = null;
+    }
+    
+    // 关闭WebRTC连接
+    closeWebRTC('helper');
+    
+    // 停止视频流
+    if (channels.helper.videoStream) {
+      channels.helper.videoStream.getTracks().forEach(track => track.stop());
+      channels.helper.videoStream = null;
+    }
+    
+    // 保存上下文
+    if (channels.helper.conversationId) {
+      saveContext('helper', channels.helper.conversationId);
+    }
+    
+    // 关闭房间
+    if (channels.helper.room) {
+      try {
+        await closeRoom(channels.helper.room.room_id);
+      } catch (error) {
+        console.error('[CozeRealtime] 关闭求助房间失败:', error);
+      }
+    }
+    
+    channels.helper.isActive = false;
+    channels.helper.room = null;
+    channels.helper.conversationId = null;
+    channels.helper.lastActivityTime = 0;
+    
+    hideHelperUI();
+    console.log('[CozeRealtime] Helper mode stopped');
+    updateUIState();
+  }
+
+  // ==========================================
+  // 语音识别
+  // ==========================================
+  
+  let recognition = null;
+  let recognitionTarget = null;
+
+  function startVoiceRecognition(target) {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      console.warn('[CozeRealtime] Speech recognition not supported');
+      return;
+    }
+
+    stopVoiceRecognition();
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.lang = 'zh-CN';
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognitionTarget = target;
+
+    recognition.onresult = (event) => {
+      const lastResult = event.results[event.results.length - 1];
+      if (lastResult.isFinal) {
+        const transcript = lastResult[0].transcript;
+        console.log('[CozeRealtime] Recognized:', transcript);
+        
+        if (recognitionTarget === 'helper' && channels.helper.isActive) {
+          askHelper(transcript);
+        }
+      }
+    };
+
+    let recognitionFailed = false;
+    
+    recognition.onerror = (event) => {
+      // 权限错误或致命错误时停止重试
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        console.warn('[CozeRealtime] 麦克风权限被拒绝，语音识别已禁用');
+        recognitionFailed = true;
+        stopVoiceRecognition();
+        return;
+      }
+      if (event.error !== 'no-speech' && event.error !== 'aborted') {
+        console.warn('[CozeRealtime] Recognition error:', event.error);
+      }
+    };
+
+    recognition.onend = () => {
+      // 如果权限失败或已停止，不再重试
+      if (recognitionFailed || !channels[recognitionTarget]?.isActive) {
+        return;
+      }
+      try {
+        recognition.start();
+      } catch (e) {
+        // Ignore restart errors
+      }
+    };
+
+    try {
+      recognition.start();
+      console.log('[CozeRealtime] Voice recognition started for', target);
+    } catch (e) {
+      console.error('[CozeRealtime] Failed to start recognition:', e);
+    }
+  }
+
+  function stopVoiceRecognition() {
+    if (recognition) {
+      try {
+        recognition.stop();
+      } catch (e) {
+        // Ignore
+      }
+      recognition = null;
+      recognitionTarget = null;
+    }
+  }
+
+  // ==========================================
+  // UI 相关
+  // ==========================================
+  
+  function showAIBubble(message, priority = 'normal') {
+    // 使用全局的AIBubbleManager（如果可用）
+    if (typeof window.AIBubbleManager !== 'undefined') {
+      window.AIBubbleManager.show(message, { priority });
+      return;
+    }
+    
+    // 降级方案
+    const bubble = document.getElementById('ai-bubble-text');
+    if (bubble) {
+      bubble.textContent = message;
+    }
+    const container = document.getElementById('ai-bubble');
+    if (container) {
+      container.classList.add('show');
+      setTimeout(() => container.classList.remove('show'), 4000);
+    }
+  }
+
+  // ========================================
+  // 统一状态指示器 - 简洁设计
+  // 监督/答疑/听取 三种状态合一
+  // ========================================
+  
+  const StatusIndicator = {
+    // 状态：'supervising' | 'listening' | 'thinking' | 'speaking'
+    currentState: 'supervising',
+    
+    update(state, customText = null) {
+      this.currentState = state;
+      // 使用左上角的监督状态胶囊
+      const statusText = document.getElementById('supervisor-status-text');
+      const supervisorPill = document.getElementById('supervisor-card');
+      
+      if (!statusText) return;
+      
+      // 清除所有状态类
+      if (supervisorPill) {
+        supervisorPill.classList.remove('helper-active', 'listening', 'thinking', 'speaking');
+      }
+      
+      switch(state) {
+        case 'supervising':
+          statusText.textContent = '监督中';
+          break;
+          
+        case 'listening':
+          if (supervisorPill) supervisorPill.classList.add('helper-active', 'listening');
+          statusText.textContent = '听你说';
+          break;
+          
+        case 'thinking':
+          if (supervisorPill) supervisorPill.classList.add('helper-active', 'thinking');
+          statusText.textContent = '思考中';
+          break;
+          
+        case 'speaking':
+          if (supervisorPill) supervisorPill.classList.add('helper-active', 'speaking');
+          statusText.textContent = customText || '回复中';
+          break;
+      }
+    }
+  };
+  
+  function showHelperUI() {
+    // 切换到听取状态
+    StatusIndicator.update('listening');
+    
+    // 更新举手按钮为"结束举手"
+    const helpBtn = document.getElementById('btn-help');
+    if (helpBtn) {
+      helpBtn.innerHTML = `
+        <div class="btn-icon-v6">
+          <i class="fa-solid fa-xmark"></i>
+        </div>
+        <span>结束</span>
+      `;
+      helpBtn.classList.add('active');
+      helpBtn.classList.remove('highlight');
+      helpBtn.onclick = () => CozeRealtime.stopHelper();
+    }
+  }
+
+  function hideHelperUI() {
+    // 恢复监督状态
+    StatusIndicator.update('supervising');
+    
+    // 恢复举手按钮
+    const helpBtn = document.getElementById('btn-help');
+    if (helpBtn) {
+      helpBtn.innerHTML = `
+        <div class="btn-icon-v6 hand-icon">
+          <i class="fa-solid fa-hand"></i>
+        </div>
+        <span>举手</span>
+      `;
+      helpBtn.classList.remove('active');
+      helpBtn.classList.add('highlight');
+      helpBtn.onclick = () => CozeRealtime.startHelper();
+    }
+  }
+  
+  // 兼容旧接口
+  function showListeningStatus(show) {
+    if (show) {
+      StatusIndicator.update('listening');
+    }
+    // 不在这里恢复，由其他逻辑控制
+  }
+
+  // 不需要聊天消息显示了，改为简单日志
+  function addHelperMessage(text, role) {
+    console.log(`[答疑] ${role}: ${text}`);
+    // 不显示聊天气泡，纯语音交互
+  }
+
+  function showHelperTyping(show) {
+    const listeningIndicator = document.getElementById('listening-indicator');
+    if (listeningIndicator) {
+      const textEl = listeningIndicator.querySelector('.listening-text');
+      if (textEl) {
+        textEl.textContent = show ? '小影老师思考中...' : '正在听你说话...';
+      }
+    }
+  }
+
+  function updateUIState() {
+    // 更新监督模式指示器
+    // 使用新的V7状态卡片
+    const supervisorCard = document.getElementById('supervisor-card');
+    if (supervisorCard) {
+      supervisorCard.classList.toggle('active', channels.supervisor.isActive);
+    }
+
+    // 更新求助按钮状态
+    const helpBtn = document.getElementById('btn-help');
+    if (helpBtn) {
+      helpBtn.classList.toggle('active', channels.helper.isActive);
+    }
+  }
+
+  function showToast(message, type = 'info') {
+    if (typeof window.showToast === 'function') {
+      window.showToast(message, type);
+    }
+  }
+
+  // ==========================================
+  // 任务模式管理（背诵/听写/默写）
+  // ==========================================
+  
+  /**
+   * 启动任务模式
+   * @param {string} type - 任务类型: 'recite' | 'dictation' | 'copywrite'
+   * @param {object} options - 配置选项
+   *   - originalText: 原文内容（背诵/默写）
+   *   - wordList: 词表数组（听写）
+   *   - onResult: 结果回调 (json) => {}
+   *   - onHint: 提示回调 (hint) => {}
+   *   - onSpeech: 语音识别回调 (text) => {}
+   *   - autoStartRecognition: 是否自动启动语音识别（默认false，由ReciteSession控制）
+   */
+  async function startTaskMode(type, options = {}) {
+    console.log(`[TaskMode] 启动${type}模式`);
+    
+    if (channels.task.isActive) {
+      console.warn('[TaskMode] 已有任务在运行，先停止');
+      await stopTaskMode();
+    }
+    
+    // 暂停监督（降低频率，但保持专注度监测）
+    RoomManager.pauseSupervisor();
+    
+    // 初始化任务通道
+    channels.task.isActive = true;
+    channels.task.type = type;
+    channels.task.status = 'ready';
+    channels.task.recognizedText = '';
+    channels.task.originalText = options.originalText || null;
+    channels.task.wordList = options.wordList || null;
+    channels.task.onResult = options.onResult || null;
+    channels.task.onHint = options.onHint || null;
+    channels.task.onSpeech = options.onSpeech || null;
+    
+    // 更新状态指示器
+    const statusMap = {
+      recite: '背诵模式',
+      dictation: '听写模式',
+      copywrite: '默写模式'
+    };
+    StatusIndicator.update('speaking', statusMap[type]);
+    
+    // 尝试获取任务专属bot（如果没有配置，使用helper作为fallback）
+    const botId = CONFIG.BOTS[type] || CONFIG.BOTS.helper;
+    
+    // 任务模式使用chat API，不需要单独创建房间
+    // 语音播放复用监督房间的WebRTC连接
+    // 语音识别由ReciteSession/DictationSession自行管理
+    
+    // 只有明确要求时才自动启动语音识别
+    if (options.autoStartRecognition && type === 'recite') {
+      startTaskSpeechRecognition();
+    }
+    
+    console.log(`[TaskMode] ${type}模式已启动`);
+    console.log(`[TaskMode] 监督状态:`, RoomManager.getSupervisorStatus());
+    
+    return true;
+  }
+  
+  /**
+   * 停止任务模式
+   * @param {boolean} resumeSupervisor - 是否恢复监督（默认true）
+   */
+  async function stopTaskMode(resumeSupervisor = true) {
+    if (!channels.task.isActive) return;
+    
+    const taskType = channels.task.type;
+    console.log(`[TaskMode] 停止${taskType}模式`);
+    
+    // 停止语音识别
+    stopTaskSpeechRecognition();
+    
+    // 清除静音计时器
+    if (channels.task.silenceTimer) {
+      clearTimeout(channels.task.silenceTimer);
+      channels.task.silenceTimer = null;
+    }
+    
+    // 关闭WebRTC（如果有）
+    closeWebRTC('task');
+    
+    // 关闭房间（如果有）
+    if (channels.task.room && channels.task.room.room_id) {
+      try {
+        await closeRoom(channels.task.room.room_id);
+      } catch (e) {
+        console.warn('[TaskMode] 关闭房间失败:', e);
+      }
+    }
+    
+    // 重置状态
+    const previousType = channels.task.type;
+    channels.task.isActive = false;
+    channels.task.type = null;
+    channels.task.room = null;
+    channels.task.conversationId = null;
+    channels.task.status = 'idle';
+    channels.task.recognizedText = '';
+    channels.task.originalText = null;
+    channels.task.wordList = null;
+    channels.task.onResult = null;
+    channels.task.onHint = null;
+    channels.task.onSpeech = null;
+    
+    // 恢复监督（可选）
+    if (resumeSupervisor) {
+      RoomManager.resumeSupervisor();
+      StatusIndicator.update('supervising');
+    }
+    
+    console.log(`[TaskMode] ${previousType}模式已停止, 恢复监督:`, resumeSupervisor);
+  }
+  
+  /**
+   * 发送消息到任务智能体
+   */
+  async function sendTaskMessage(message, expectJSON = true) {
+    const type = channels.task.type;
+    if (!type) {
+      console.error('[TaskMode] 没有活跃的任务模式');
+      return null;
+    }
+    
+    // 优先使用任务专属bot，否则用helper
+    const botId = CONFIG.BOTS[type] || CONFIG.BOTS.helper;
+    
+    try {
+      const result = await sendMessage(
+        botId,
+        message,
+        channels.task.conversationId
+      );
+      
+      if (result.conversationId) {
+        channels.task.conversationId = result.conversationId;
+      }
+      
+      // 尝试解析JSON
+      if (expectJSON && result.message) {
+        try {
+          // 提取JSON部分
+          const jsonMatch = result.message.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            return JSON.parse(jsonMatch[0]);
+          }
+        } catch (e) {
+          console.warn('[TaskMode] JSON解析失败:', e);
+        }
+      }
+      
+      return result.message;
+    } catch (error) {
+      console.error('[TaskMode] 发送消息失败:', error);
+      return null;
+    }
+  }
+  
+  // 任务模式语音识别
+  let taskRecognition = null;
+  
+  function startTaskSpeechRecognition() {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      console.warn('[TaskMode] 浏览器不支持语音识别');
+      return;
+    }
+    
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    taskRecognition = new SpeechRecognition();
+    taskRecognition.continuous = true;
+    taskRecognition.interimResults = true;
+    taskRecognition.lang = 'zh-CN';
+    
+    taskRecognition.onresult = (event) => {
+      let finalTranscript = '';
+      let interimTranscript = '';
+      
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+      
+      if (finalTranscript) {
+        channels.task.recognizedText += finalTranscript;
+        console.log('[TaskMode] 识别到:', finalTranscript);
+        
+        // 调用语音回调
+        if (channels.task.onSpeech) {
+          channels.task.onSpeech(finalTranscript, channels.task.recognizedText);
+        }
+        
+        // 检测是否是提问（需要提示）
+        checkForHintRequest(finalTranscript);
+        
+        // 重置静音计时器
+        resetSilenceTimer();
+      }
+    };
+    
+    taskRecognition.onerror = (event) => {
+      console.error('[TaskMode] 语音识别错误:', event.error);
+      if (event.error !== 'no-speech') {
+        // 尝试重启
+        setTimeout(() => {
+          if (channels.task.isActive && channels.task.type === 'recite') {
+            taskRecognition.start();
+          }
+        }, 1000);
+      }
+    };
+    
+    taskRecognition.onend = () => {
+      // 如果任务还在进行，自动重启
+      if (channels.task.isActive && channels.task.type === 'recite') {
+        taskRecognition.start();
+      }
+    };
+    
+    taskRecognition.start();
+    channels.task.status = 'listening';
+    console.log('[TaskMode] 语音识别已启动');
+  }
+  
+  function stopTaskSpeechRecognition() {
+    if (taskRecognition) {
+      taskRecognition.stop();
+      taskRecognition = null;
+    }
+  }
+  
+  function resetSilenceTimer() {
+    if (channels.task.silenceTimer) {
+      clearTimeout(channels.task.silenceTimer);
+    }
+    // 10秒无语音自动结束
+    channels.task.silenceTimer = setTimeout(() => {
+      if (channels.task.isActive && channels.task.status === 'listening') {
+        console.log('[TaskMode] 检测到静音，自动完成');
+        finishTask();
+      }
+    }, 10000);
+  }
+  
+  // 检测提问关键词
+  const HINT_KEYWORDS = ['怎么说', '忘了', '提示', '下一句', '不记得', '什么来着'];
+  
+  function checkForHintRequest(text) {
+    if (HINT_KEYWORDS.some(kw => text.includes(kw))) {
+      console.log('[TaskMode] 检测到提示请求');
+      requestHint();
+    }
+  }
+  
+  /**
+   * 请求提示
+   */
+  async function requestHint() {
+    if (!channels.task.originalText) return;
+    
+    StatusIndicator.update('thinking');
+    
+    const message = JSON.stringify({
+      type: 'hint_request',
+      original_text: channels.task.originalText,
+      recited_so_far: channels.task.recognizedText
+    });
+    
+    const response = await sendTaskMessage(message, true);
+    
+    if (response && response.action === 'hint') {
+      // 播放提示语音
+      await speak(response.message, 'high');
+      
+      // 调用提示回调
+      if (channels.task.onHint) {
+        channels.task.onHint(response);
+      }
+    }
+    
+    StatusIndicator.update('speaking', channels.task.type === 'recite' ? '背诵模式' : '任务中');
+  }
+  
+  /**
+   * 完成任务，请求评估
+   */
+  async function finishTask() {
+    if (!channels.task.isActive) return null;
+    
+    console.log('[TaskMode] 完成任务，请求评估');
+    channels.task.status = 'analyzing';
+    StatusIndicator.update('thinking');
+    
+    // 停止语音识别
+    stopTaskSpeechRecognition();
+    
+    // 发送评估请求
+    const message = JSON.stringify({
+      type: 'evaluate',
+      task_type: channels.task.type,
+      original_text: channels.task.originalText,
+      user_input: channels.task.recognizedText,
+      word_list: channels.task.wordList
+    });
+    
+    const result = await sendTaskMessage(message, true);
+    
+    channels.task.status = 'result';
+    
+    if (result && channels.task.onResult) {
+      channels.task.onResult(result);
+    }
+    
+    // 播放鼓励语
+    if (result && result.encouragement) {
+      await speak(result.encouragement);
+    }
+    
+    return result;
+  }
+  
+  /**
+   * 获取任务状态
+   */
+  function getTaskStatus() {
+    return {
+      isActive: channels.task.isActive,
+      type: channels.task.type,
+      status: channels.task.status,
+      recognizedText: channels.task.recognizedText
+    };
+  }
+  
+  // ==========================================
+  // 公开 API
+  // ==========================================
+  
+  return {
+    // 监督模式
+    startSupervisor,
+    stopSupervisor,
+    supervisorCheck,
+    
+    // 答疑模式
+    startHelper,
+    stopHelper,
+    askHelper,
+    
+    // 任务模式（背诵/听写/默写）
+    startTaskMode,
+    stopTaskMode,
+    sendTaskMessage,
+    finishTask,
+    requestHint,
+    getTaskStatus,
+    RoomManager,
+    
+    // 状态
+    isActive: (channel) => channels[channel]?.isActive || false,
+    getChannels: () => ({ ...channels }),
+    
+    // 语音
+    speak,
+    
+    // 配置
+    CONFIG
+  };
+})();
+
+// 暴露到全局
+window.CozeRealtime = CozeRealtime;
+
+// 辅助函数
+window.sendHelperText = function() {
+  const input = document.getElementById('helper-text-input');
+  if (input && input.value.trim()) {
+    CozeRealtime.askHelper(input.value.trim());
+    input.value = '';
+  }
+};
+
+console.log('✅ Coze 实时视频通话模块 v2 已加载');

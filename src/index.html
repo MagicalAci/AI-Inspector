@@ -14,13 +14,278 @@
   <!-- FontAwesome 6 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
   <!-- Styles -->
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/onboarding.css">
 </head>
 <body>
+  <!-- SVG 渐变定义 -->
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <linearGradient id="dialGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#34D399"/>
+        <stop offset="100%" style="stop-color:#10B981"/>
+      </linearGradient>
+    </defs>
+  </svg>
+  
   <div class="app-container" id="app">
+    
+    <!-- ==========================================
+         新用户引导流程
+         ========================================== -->
+    <div class="onboarding-container active" id="onboarding">
+      
+      <!-- 第一阶段：介绍滑动页 -->
+      <div class="intro-slides active" id="intro-slides">
+        <!-- 右上角跳过按钮 -->
+        <div class="skip-btn-header">
+          <button class="btn-skip-top" id="btn-skip-intro">跳过</button>
+        </div>
+        
+        <div class="intro-slides-wrapper" id="intro-slides-wrapper">
+          
+          <!-- 滑动页1：痛点共鸣 -->
+          <div class="intro-slide slide-pain">
+            <div class="slide-video-avatar">
+              <video autoplay loop muted playsinline>
+                <source src="assets/images/slide-1-worry.mp4" type="video/mp4">
+              </video>
+              </div>
+            <h2 class="slide-title-new">孩子写作业<br><span class="highlight-text">总是让人操心？</span></h2>
+            <div class="pain-points-simple">
+              <p>📱 工作忙，没时间全程盯着</p>
+              <p>😵 孩子容易分心走神</p>
+              <p>😤 催促多了伤感情</p>
+              </div>
+          </div>
+          
+          <!-- 滑动页2：介绍方案 -->
+          <div class="intro-slide slide-solution">
+            <div class="slide-video-avatar">
+              <video autoplay loop muted playsinline>
+                <source src="assets/images/slide-2-teacher.mp4" type="video/mp4">
+              </video>
+            </div>
+            <div class="solution-badge">AI 智能陪伴</div>
+            <h2 class="slide-title-new">认识<span class="brand-name">小影老师</span></h2>
+            <div class="features-simple">
+              <p>📹 视频陪学，全程在线</p>
+              <p>🔔 走神提醒，温柔有效</p>
+              <p>🎯 任务系统，激励成长</p>
+            </div>
+          </div>
+          
+          <!-- 滑动页3：成长价值 -->
+          <div class="intro-slide slide-value">
+            <div class="slide-video-avatar">
+              <video autoplay loop muted playsinline>
+                <source src="assets/images/slide-3-student.mp4" type="video/mp4">
+              </video>
+                </div>
+            <h2 class="slide-title-new">培养受益一生的<br><span class="highlight-text">学习好习惯</span></h2>
+            <div class="features-simple">
+              <p>🎯 培养目标感，知道做什么</p>
+              <p>⭐ 激发成就感，越学越有劲</p>
+              <p>🚀 建立自驱力，主动想进步</p>
+            </div>
+          </div>
+          
+        </div>
+        
+        <!-- 底部固定导航区域 -->
+        <div class="intro-nav-new">
+          <div class="intro-dots-new">
+            <span class="intro-dot-new active" data-index="0"></span>
+            <span class="intro-dot-new" data-index="1"></span>
+            <span class="intro-dot-new" data-index="2"></span>
+          </div>
+          <button class="btn-intro-next-new" id="btn-intro-next">
+            <span id="btn-intro-text">继续</span>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M7 4L13 10L7 16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      
+      <!-- 第二阶段：对话式面谈 -->
+      <div class="interview-section-new" id="interview-section">
+          <!-- 右上角跳过按钮 -->
+        <div class="interview-skip-new">
+          <button class="btn-skip-interview" id="btn-skip-interview">跳过</button>
+          </div>
+        
+        <!-- 主要内容区 - 小影老师居中放大 -->
+        <div class="interview-center">
+          <!-- 头像固定区域 -->
+          <div class="teacher-fixed-area">
+            <div class="teacher-avatar-large">
+              <video autoplay loop muted playsinline id="teacher-video">
+              <source src="assets/images/xiaoying-avatar.mp4" type="video/mp4">
+            </video>
+          </div>
+            <div class="teacher-name-label">小影老师</div>
+        </div>
+        
+          <!-- 气泡容器 -->
+          <div class="bubble-wrapper">
+            <div class="single-bubble" id="interview-bubble">
+              <div class="bubble-content" id="bubble-text"></div>
+        </div>
+          </div>
+          </div>
+          
+        <!-- 底部输入区域 -->
+        <div class="interview-bottom-fixed" id="interview-input-area">
+          <!-- 快捷选项（3个按钮） -->
+          <div class="quick-options" id="quick-options">
+            <!-- 动态生成 -->
+          </div>
+          
+          <!-- 按住说话按钮 -->
+          <div class="voice-input-bar" id="voice-input-bar">
+            <button class="btn-keyboard-toggle" id="btn-switch-keyboard">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+                <path d="M6 9H6.01M10 9H10.01M14 9H14.01M18 9H18.01M8 13H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              </button>
+            <button class="btn-hold-speak" id="btn-voice-hold">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" stroke-width="2"/>
+                <path d="M5 11V12C5 15.866 8.13401 19 12 19C15.866 19 19 15.866 19 12V11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M12 19V22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+                <span>按住 说话</span>
+              </button>
+            <div class="spacer-right"></div>
+            </div>
+            
+          <!-- 键盘输入模式（隐藏） -->
+          <div class="keyboard-input-bar" id="keyboard-input-bar" style="display: none;">
+            <button class="btn-voice-toggle" id="btn-switch-voice">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" stroke-width="2"/>
+                <path d="M5 11V12C5 15.866 8.13401 19 12 19C15.866 19 19 15.866 19 12V11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              </button>
+            <div class="keyboard-input-wrap">
+              <input type="text" id="interview-input" placeholder="输入回复...">
+              <button class="btn-send" id="interview-send-btn">
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                  <path d="M18 10L3 17L6 10L3 3L18 10Z" fill="currentColor"/>
+                </svg>
+                </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 第三阶段：特工入营契约（简洁版） -->
+      <div class="contract-section" id="contract-section">
+        <!-- 可滚动内容区 -->
+        <div class="contract-scroll-content">
+          <!-- 顶部装饰光晕 -->
+          <div class="contract-glow"></div>
+          
+          <!-- 特工身份卡 - 居中大头像 -->
+          <div class="agent-identity-card">
+            <div class="identity-avatar-wrapper">
+              <div class="identity-avatar-ring"></div>
+              <div class="identity-avatar">
+                <img src="assets/images/avatars/avatar-1.svg" alt="头像" id="contract-avatar">
+              </div>
+              <div class="identity-badge">⭐</div>
+                </div>
+            <div class="identity-name" id="contract-name">小特工</div>
+            <div class="identity-rank">见习特工</div>
+              </div>
+          
+          <!-- 契约书卷轴 -->
+          <div class="contract-scroll-paper">
+            <div class="scroll-header">
+              <div class="scroll-seal">🏅</div>
+              <h2 class="scroll-title">特工入营契约</h2>
+            </div>
+            
+            <div class="scroll-content">
+              <!-- 我的承诺 -->
+              <div class="my-pledge">
+                <div class="pledge-label">我承诺</div>
+                <p class="pledge-content">
+                  认真完成每一个任务<br>
+                  遇到困难不放弃<br>
+                  每天进步一点点！
+                </p>
+            </div>
+            
+              <!-- 分隔线 -->
+              <div class="pledge-divider">
+                <span class="divider-icon">✦</span>
+              </div>
+              
+              <!-- 小影承诺 -->
+              <div class="teacher-promise">
+                <div class="pledge-label">小影老师承诺</div>
+                <div class="promise-list">
+                <div class="promise-item">
+                    <span class="promise-check">✓</span>
+                    <span>全程陪伴学习</span>
+                </div>
+                <div class="promise-item">
+                    <span class="promise-check">✓</span>
+                  <span>走神时温柔提醒</span>
+                </div>
+                <div class="promise-item">
+                    <span class="promise-check">✓</span>
+                    <span>完成任务有奖励</span>
+                </div>
+              </div>
+            </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 底部固定按钮 -->
+        <div class="contract-bottom-fixed">
+          <button class="btn-stamp-new" id="btn-sign-contract">
+            <span class="stamp-icon">🔏</span>
+            <span class="stamp-text">盖章入营</span>
+          </button>
+          <p class="contract-hint">点击即表示同意以上承诺</p>
+        </div>
+      </div>
+      
+      <!-- 印章动画覆盖层 -->
+      <div class="stamp-overlay" id="stamp-overlay">
+        <div class="stamp-animation">
+          <!-- 真实印章 -->
+          <div class="real-stamp" id="real-stamp">
+            <div class="stamp-outer-ring"></div>
+            <div class="stamp-inner-ring"></div>
+            <div class="stamp-star">★</div>
+            <div class="stamp-text-top">特工训练营</div>
+            <div class="stamp-text-bottom">正式成员</div>
+          </div>
+          <div class="stamp-success-text">契约生效！</div>
+        </div>
+      </div>
+      
+      <!-- 成功提示 -->
+      <div class="contract-success" id="contract-success">
+        <div class="success-confetti">🎉</div>
+        <h2 class="success-title">契约签订成功！</h2>
+        <p class="success-subtitle">欢迎加入特工训练营！</p>
+        <p class="success-countdown"><span id="countdown-num">3</span> 秒后进入首页...</p>
+      </div>
+      
+    </div>
     
     <!-- ==========================================
          侧边栏菜单（详细档案）
@@ -100,12 +365,6 @@
             <i class="fa-solid fa-chevron-right menu-arrow"></i>
           </div>
           <div class="menu-divider"></div>
-          <div class="menu-item" data-page="vip">
-            <i class="fa-solid fa-crown"></i>
-            <span>高级特工</span>
-            <span class="menu-tag vip">VIP</span>
-            <i class="fa-solid fa-chevron-right menu-arrow"></i>
-          </div>
           <div class="menu-item" data-page="settings">
             <i class="fa-solid fa-gear"></i>
             <span>设置</span>
@@ -124,29 +383,30 @@
          首页（简洁版）
          ========================================== -->
     <div class="page page-home active" id="page-home">
-      <!-- 顶部栏 -->
-      <header class="home-header">
-        <button class="user-avatar-btn" id="btn-open-sidebar">
-          <img src="assets/images/user-avatar.svg" alt="用户头像">
-          <span class="level-dot" id="home-level-dot">1</span>
+      <!-- 顶部状态栏 -->
+      <header class="home-header-v2">
+        <button class="user-avatar-btn-v2" id="btn-open-sidebar">
+          <img src="assets/images/user-avatar.svg" alt="特工档案">
+          <span class="status-online"></span>
         </button>
-        <div class="header-right">
-          <button class="balance-btn" id="btn-balance">
+        <div class="header-center">
+          <span class="header-title">总部基地</span>
+        </div>
+        <div class="header-right-v2">
+          <button class="coins-btn-v2" id="btn-balance">
             <i class="fa-solid fa-coins"></i>
             <span id="user-balance">0</span>
-          </button>
-          <button class="recharge-btn" id="btn-recharge">
-            首充
           </button>
         </div>
       </header>
       
-      <!-- 虚拟人区域 -->
-      <div class="avatar-section">
-        <div class="avatar-wrapper">
+      <!-- 虚拟人区域（核心） -->
+      <div class="avatar-section-v2">
+        <div class="avatar-glow"></div>
+        <div class="avatar-wrapper-v2">
           <video 
             id="avatar-video" 
-            class="avatar-video" 
+            class="avatar-video-v2" 
             autoplay 
             loop 
             muted 
@@ -155,54 +415,114 @@
             <source src="assets/images/xiaoying-avatar.mp4" type="video/mp4">
           </video>
         </div>
-        <h1 class="avatar-name">小影老师</h1>
-        <p class="avatar-greeting" id="avatar-greeting">今天也要加油学习哦~</p>
+        <div class="avatar-name-tag">
+          <span class="name">小影老师</span>
+          <span class="role">AI 督学官</span>
+        </div>
+        <p class="avatar-greeting-v2" id="avatar-greeting">今天也要加油学习哦~</p>
       </div>
       
-      <!-- 简洁统计条 -->
-      <div class="home-stats-bar">
-        <div class="stat-item">
-          <span class="stat-icon">📋</span>
-          <span class="stat-value" id="today-tasks">0</span>
-          <span class="stat-label">今日任务</span>
+      <!-- 特工档案卡片 -->
+      <div class="agent-dossier" id="agent-dossier">
+        <!-- 档案头部 - 等级徽章 -->
+        <div class="dossier-header">
+          <div class="dossier-badge">
+            <div class="badge-icon" id="agent-badge-icon">🎖️</div>
+            <div class="badge-info">
+              <span class="badge-level" id="agent-level-display">Lv.1</span>
+              <span class="badge-title" id="agent-title-display">见习特工</span>
         </div>
-        <div class="stat-divider"></div>
-        <div class="stat-item">
-          <span class="stat-icon" id="level-icon">🎖️</span>
-          <span class="stat-value" id="agent-level-short">Lv.1</span>
-          <span class="stat-label" id="agent-level-name">见习特工</span>
         </div>
-        <div class="stat-divider"></div>
-        <div class="stat-item">
-          <span class="stat-icon">🔥</span>
-          <span class="stat-value" id="streak-days">0</span>
-          <span class="stat-label">连续天数</span>
-        </div>
-      </div>
-      
-      <!-- 待执行任务列表（有任务时显示）-->
-      <div class="pending-tasks" id="pending-tasks" style="display: none;">
-        <div class="pending-header">
-          <span class="pending-title">📋 待执行任务</span>
-          <button class="btn-edit-tasks" id="btn-edit-tasks">
-            <i class="fa-solid fa-plus"></i> 添加
-          </button>
-        </div>
-        <div class="pending-list" id="pending-list">
-          <!-- 动态生成 -->
+          <div class="dossier-stats">
+            <div class="stat-mini">
+              <i class="fa-solid fa-fire"></i>
+              <span id="streak-days-v2">0</span>
+              <label>连续</label>
+            </div>
+            <div class="stat-mini">
+              <i class="fa-solid fa-check-circle"></i>
+              <span id="total-missions-v2">0</span>
+              <label>任务</label>
+            </div>
         </div>
       </div>
       
-      <!-- 主按钮区域 -->
-      <div class="home-actions">
-        <button class="btn-main-action" id="btn-main-action">
-          <i class="fa-solid fa-clipboard-list" id="main-action-icon"></i>
+        <!-- 档案分隔线 -->
+        <div class="dossier-divider">
+          <span class="divider-label">机密档案</span>
+        </div>
+        
+        <!-- 今日任务简报 -->
+        <div class="mission-briefing" id="mission-briefing">
+          <!-- 无任务状态 -->
+          <div class="briefing-empty" id="briefing-empty">
+            <div class="empty-icon">📋</div>
+            <p class="empty-text">暂无待执行任务</p>
+            <p class="empty-hint">设置特工任务开始学习吧</p>
+          </div>
+          
+          <!-- 有任务状态（动态显示） -->
+          <div class="briefing-tasks" id="briefing-tasks" style="display: none;">
+            <div class="briefing-header">
+              <span class="briefing-title">
+                <i class="fa-solid fa-crosshairs"></i>
+                今日任务简报
+              </span>
+              <span class="task-count" id="task-count-badge">0项</span>
+            </div>
+            <div class="task-preview-list" id="task-preview-list">
+              <!-- 动态生成任务预览 -->
+            </div>
+        </div>
+      </div>
+      
+        <!-- 今日挑战 - 快速开始入口 -->
+         <div class="daily-mission quick-start" id="daily-mission" onclick="quickStartChallenge()">
+           <div class="mission-header">
+             <div class="mission-icon">
+               <i class="fa-solid fa-bolt"></i>
+             </div>
+             <div class="mission-info">
+               <span class="mission-label">今日挑战</span>
+               <span class="mission-desc" id="daily-mission-desc">完成30分钟专注学习</span>
+             </div>
+             <div class="mission-reward">
+               <span class="reward-value">+50</span>
+               <i class="fa-solid fa-coins"></i>
+             </div>
+           </div>
+           <!-- 快速开始引导 -->
+           <div class="quick-start-hint" id="quick-start-hint">
+             <span class="hint-text">👆 点击立即开始挑战</span>
+             <i class="fa-solid fa-chevron-right hint-arrow"></i>
+           </div>
+           <!-- 进度条（有进度时显示） -->
+           <div class="mission-progress-bar" id="mission-progress-bar" style="display: none;">
+             <div class="progress-fill" id="daily-progress-fill" style="width: 0%"></div>
+             <span class="progress-text" id="daily-progress-text">0/30分钟</span>
+           </div>
+         </div>
+      </div>
+      
+      <!-- 主操作按钮 -->
+      <div class="action-area-v2">
+        <button class="btn-mission-action" id="btn-main-action">
+          <div class="btn-content">
+            <i class="fa-solid fa-crosshairs" id="main-action-icon"></i>
           <span id="main-action-text">设置特工任务</span>
+          </div>
+          <div class="btn-shine"></div>
+        </button>
+        <button class="btn-add-task" id="btn-add-task" style="display: none;">
+          <i class="fa-solid fa-plus"></i>
         </button>
       </div>
       
       <!-- AI提示 -->
-      <p class="ai-disclaimer">小影老师由 AI 驱动</p>
+      <p class="ai-disclaimer-v2">
+        <span class="ai-dot"></span>
+        小影老师由 AI 驱动
+      </p>
     </div>
     
     <!-- ==========================================
@@ -235,7 +555,7 @@
               </div>
               <div class="choice-info">
                 <h3>快速设置</h3>
-                <p>选择时长和科目</p>
+                <p>选择时长，开始专注</p>
               </div>
             </button>
           </div>
@@ -252,10 +572,37 @@
           <i class="fa-solid fa-chevron-left"></i>
         </button>
         <h1 class="page-title">拍摄作业单</h1>
-        <button class="btn-help">
+        <button class="btn-help" id="btn-show-example">
           <i class="fa-solid fa-circle-question"></i>
         </button>
       </header>
+      
+      <!-- 隐藏的文件输入 -->
+      <input type="file" id="photo-file-input" accept="image/*" style="display: none;">
+      
+      <!-- 示例蒙层 -->
+      <div class="photo-example-overlay" id="photo-example-overlay">
+        <div class="example-content">
+          <button class="example-close-btn" id="btn-close-example">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+          <p class="example-title">按照示例对准作业拍摄</p>
+          <div class="example-image-wrapper">
+            <img src="assets/images/example-homework.svg" alt="示例作业" class="example-image">
+            <div class="example-frame">
+              <div class="frame-corner tl"></div>
+              <div class="frame-corner tr"></div>
+              <div class="frame-corner bl"></div>
+              <div class="frame-corner br"></div>
+            </div>
+          </div>
+          <p class="example-tips">
+            <i class="fa-solid fa-lightbulb"></i>
+            保持作业单平整，光线充足
+          </p>
+          <button class="example-confirm-btn" id="btn-example-confirm">知道了</button>
+        </div>
+      </div>
       
       <!-- 拍照区域 -->
       <div class="photo-area">
@@ -274,6 +621,16 @@
           <p class="photo-hint">将作业单放入框内拍摄</p>
         </div>
         
+        <!-- 连拍缩略图区域 -->
+        <div class="batch-thumbnails" id="batch-thumbnails" style="display: none;">
+          <div class="thumbnails-scroll" id="thumbnails-scroll">
+            <!-- 动态生成缩略图 -->
+          </div>
+          <button class="batch-done-btn" id="btn-batch-done">
+            完成 <span class="batch-count" id="batch-count">0</span>
+          </button>
+        </div>
+        
         <!-- 拍照按钮 -->
         <div class="photo-controls">
           <button class="photo-btn-gallery" id="btn-gallery">
@@ -282,8 +639,9 @@
           <button class="photo-btn-capture" id="btn-capture">
             <span class="capture-inner"></span>
           </button>
-          <button class="photo-btn-flash" id="btn-flash">
-            <i class="fa-solid fa-bolt"></i>
+          <button class="photo-btn-mode" id="btn-batch-mode">
+            <i class="fa-solid fa-file" id="batch-mode-icon"></i>
+            <span class="mode-label" id="mode-label">单拍</span>
           </button>
         </div>
       </div>
@@ -308,147 +666,125 @@
     </div>
     
     <!-- ==========================================
-         快速设置页面
+         快速设置页面 - 极简版
          ========================================== -->
     <div class="page page-quick" id="page-quick">
-      <header class="page-header">
-        <button class="btn-back" id="btn-back-quick">
-          <i class="fa-solid fa-chevron-left"></i>
+      <header class="quick-header-simple">
+        <button class="btn-back-circle" id="btn-back-quick">
+          <i class="fa-solid fa-xmark"></i>
         </button>
-        <h1 class="page-title">设置特工任务</h1>
-        <div style="width: 40px;"></div>
+        <h1>快速开始</h1>
       </header>
       
-      <div class="quick-content">
-        <!-- 学习时长选择 -->
-        <div class="quick-section">
-          <h3 class="quick-section-title">任务时长</h3>
-          <div class="duration-grid">
-            <button class="duration-option" data-duration="15">
-              <span class="duration-value">15</span>
-              <span class="duration-unit">分钟</span>
+      <div class="quick-body-simple">
+        <!-- 时间选择 - 大数字 -->
+        <div class="time-section-simple">
+          <div class="time-big-display">
+            <button class="time-btn-adjust" id="btn-time-minus">
+              <i class="fa-solid fa-minus"></i>
             </button>
-            <button class="duration-option active" data-duration="30">
-              <span class="duration-value">30</span>
-              <span class="duration-unit">分钟</span>
-            </button>
-            <button class="duration-option" data-duration="45">
-              <span class="duration-value">45</span>
-              <span class="duration-unit">分钟</span>
-            </button>
-            <button class="duration-option" data-duration="60">
-              <span class="duration-value">60</span>
-              <span class="duration-unit">分钟</span>
+            <div class="time-center">
+              <span class="time-number" id="time-value">30</span>
+              <span class="time-label">分钟</span>
+            </div>
+            <button class="time-btn-adjust" id="btn-time-plus">
+              <i class="fa-solid fa-plus"></i>
             </button>
           </div>
-          <div class="custom-duration">
-            <span>自定义：</span>
-            <input type="number" id="custom-duration" min="5" max="120" placeholder="分钟">
+          
+          <!-- 滑块 -->
+          <div class="time-slider-simple">
+            <input type="range" class="slider-track" id="time-slider" 
+                   min="5" max="120" value="30" step="5">
+        </div>
+        
+          <!-- 快捷按钮 -->
+          <div class="time-presets-simple">
+            <button class="preset-chip" data-minutes="15">15分</button>
+            <button class="preset-chip" data-minutes="25">25分</button>
+            <button class="preset-chip active" data-minutes="30">30分</button>
+            <button class="preset-chip" data-minutes="45">45分</button>
+            <button class="preset-chip" data-minutes="60">60分</button>
           </div>
         </div>
         
-        <!-- 学科选择 -->
-        <div class="quick-section">
-          <h3 class="quick-section-title">任务科目（可多选）</h3>
-          <div class="subject-grid">
-            <button class="subject-option active" data-subject="语文">
-              <span class="subject-icon">📖</span>
-              <span>语文</span>
-            </button>
-            <button class="subject-option" data-subject="数学">
-              <span class="subject-icon">🔢</span>
-              <span>数学</span>
-            </button>
-            <button class="subject-option" data-subject="英语">
-              <span class="subject-icon">🔤</span>
-              <span>英语</span>
-            </button>
-            <button class="subject-option" data-subject="科学">
-              <span class="subject-icon">🔬</span>
-              <span>科学</span>
-            </button>
-            <button class="subject-option" data-subject="阅读">
-              <span class="subject-icon">📚</span>
-              <span>阅读</span>
-            </button>
-            <button class="subject-option" data-subject="其他">
-              <span class="subject-icon">✏️</span>
-              <span>其他</span>
-            </button>
-          </div>
-        </div>
-        
-        <!-- 任务类型 -->
-        <div class="quick-section">
-          <h3 class="quick-section-title">任务类型</h3>
-          <div class="task-type-list">
-            <label class="task-type-item">
-              <input type="radio" name="taskType" value="homework" checked>
-              <span class="type-content">
-                <i class="fa-solid fa-pen"></i>
-                <span>写作业</span>
+        <!-- AI监督选项 -->
+        <div class="ai-monitor-section">
+          <p class="section-title">
+            <i class="fa-solid fa-robot"></i>
+            AI监督设置
+          </p>
+          <div class="monitor-options">
+            <label class="monitor-option">
+              <input type="checkbox" id="monitor-movement" checked>
+              <span class="option-icon">🔍</span>
+              <span class="option-text">
+                <span class="option-name">检测乱动</span>
+                <span class="option-desc">频繁离开座位时提醒</span>
+              </span>
+              <span class="option-check">
+                <i class="fa-solid fa-check"></i>
               </span>
             </label>
-            <label class="task-type-item">
-              <input type="radio" name="taskType" value="reading">
-              <span class="type-content">
-                <i class="fa-solid fa-book-open"></i>
-                <span>阅读</span>
+            
+            <label class="monitor-option">
+              <input type="checkbox" id="monitor-distraction" checked>
+              <span class="option-icon">👀</span>
+              <span class="option-text">
+                <span class="option-name">检测分心</span>
+                <span class="option-desc">注意力不集中时提醒</span>
+              </span>
+              <span class="option-check">
+                <i class="fa-solid fa-check"></i>
               </span>
             </label>
-            <label class="task-type-item">
-              <input type="radio" name="taskType" value="recite">
-              <span class="type-content">
-                <i class="fa-solid fa-microphone"></i>
-                <span>背诵</span>
+            
+            <label class="monitor-option">
+              <input type="checkbox" id="monitor-phone">
+              <span class="option-icon">📱</span>
+              <span class="option-text">
+                <span class="option-name">检测手机</span>
+                <span class="option-desc">使用手机时提醒</span>
+              </span>
+              <span class="option-check">
+                <i class="fa-solid fa-check"></i>
               </span>
             </label>
-          </div>
-        </div>
-        
-        <!-- 背诵内容上传 -->
-        <div class="recite-upload" id="recite-upload" style="display: none;">
-          <h3 class="quick-section-title">上传背诵内容</h3>
-          <div class="upload-area" id="upload-recite">
-            <i class="fa-solid fa-cloud-arrow-up"></i>
-            <p>点击上传图片或拍照</p>
-            <span>支持拍摄课本、诗词等</span>
+            
+            <label class="monitor-option">
+              <input type="checkbox" id="monitor-posture">
+              <span class="option-icon">🪑</span>
+              <span class="option-text">
+                <span class="option-name">坐姿提醒</span>
+                <span class="option-desc">坐姿不正确时提醒</span>
+              </span>
+              <span class="option-check">
+                <i class="fa-solid fa-check"></i>
+              </span>
+            </label>
           </div>
         </div>
       </div>
       
-      <div class="quick-footer">
-        <button class="btn-start-quick" id="btn-start-quick">
-          <i class="fa-solid fa-check"></i>
-          确认任务
+      <!-- 底部开始按钮 -->
+      <div class="quick-footer-simple">
+        <button class="btn-start-study" id="btn-start-quick">
+          <i class="fa-solid fa-play"></i>
+          开始专注
         </button>
       </div>
     </div>
     
     <!-- ==========================================
-         视频督学页面
+         视频督学页面 - 仿微信视频通话版
          ========================================== -->
-    <div class="page page-study" id="page-study">
-      <header class="study-header">
-        <div class="study-timer">
-          <i class="fa-solid fa-clock"></i>
-          <span id="study-time">00:00</span>
-        </div>
-        <div class="study-status">
-          <span class="status-dot active"></span>
-          <span id="focus-status">执行中</span>
-        </div>
-        <button class="btn-minimize" id="btn-minimize">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </header>
+    <div class="page page-study video-call-style-v4" id="page-study">
       
-      <!-- 虚拟人监督区 -->
-      <div class="study-avatar-area">
-        <div class="study-avatar-wrapper">
+      <!-- 虚拟老师全屏视频背景 -->
+      <div class="teacher-fullscreen-v4">
           <video 
             id="study-avatar-video" 
-            class="study-avatar-video" 
+          class="teacher-video-fullscreen" 
             autoplay 
             loop 
             muted 
@@ -456,48 +792,770 @@
           >
             <source src="assets/images/xiaoying-avatar.mp4" type="video/mp4">
           </video>
+        <!-- 渐变遮罩 -->
+        <div class="video-overlay-gradient"></div>
         </div>
         
-        <!-- AI说话气泡 -->
-        <div class="speech-bubble" id="speech-bubble">
-          <p id="ai-message">加油！你正在认真学习呢~</p>
+      <!-- 顶部专注度条 -->
+      <div class="focus-bar-v4" id="focus-bar">
+        <div class="focus-bar-fill" id="focus-bar-fill" style="width: 100%"></div>
+      </div>
+      
+      <!-- 顶部状态栏 -->
+      <div class="study-top-bar-final">
+        <!-- 左上角：监督状态+设置 -->
+        <div class="supervisor-pill-left" id="supervisor-card">
+          <span class="status-dot-left"></span>
+          <span class="status-text-left" id="supervisor-status-text">监督中</span>
+          <button class="settings-btn-left" id="btn-supervision-settings">
+            <i class="fa-solid fa-sliders"></i>
+          </button>
+          </div>
+        
+        <!-- 顶部中间：学习时间 -->
+        <div class="time-center">
+          <span class="time-val-center" id="study-time-v2">00:00</span>
+        </div>
+        
+        <!-- 右上角：摄像头+专注度 -->
+        <div class="camera-focus-block" id="top-info-combined">
+          <!-- 摄像头 -->
+          <div class="student-cam-final camera-off" id="student-pip">
+            <video id="student-camera" autoplay playsinline muted></video>
+            <div class="cam-placeholder-final">
+              <i class="fa-solid fa-video-slash"></i>
+            </div>
+          </div>
+          <!-- 专注度（摄像头下方） -->
+          <div class="focus-bar-final">
+            <div class="focus-ring-final">
+              <svg viewBox="0 0 28 28">
+                <circle class="ring-bg-final" cx="14" cy="14" r="11" />
+                <circle class="ring-fill-final" id="focus-ring-combined" cx="14" cy="14" r="11" 
+                  stroke-dasharray="69.1" stroke-dashoffset="0" />
+              </svg>
+              <span class="focus-num-final" id="focus-score-value">85</span>
+            </div>
+            <span class="focus-label-final">专注度</span>
+          </div>
         </div>
       </div>
       
-      <!-- 当前任务卡片 -->
-      <div class="current-task-card" id="current-task-card">
-        <div class="task-badge">🎯 当前任务</div>
-        <h3 class="task-title" id="current-task-name">语文作业</h3>
-        <div class="task-progress-bar">
-          <div class="task-progress-fill" id="task-progress" style="width: 0%"></div>
+      <!-- 监督设置面板（浮动） -->
+      <div class="supervision-panel" id="supervision-panel" style="display: none;">
+        <div class="panel-header">
+          <span class="panel-title">监督设置</span>
+          <button class="panel-close" id="btn-close-supervision-panel">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
         </div>
-        <div class="task-timer-info">
-          <span class="time-elapsed" id="task-time-elapsed">00:00</span>
-          <span class="time-divider">/</span>
-          <span class="time-total" id="task-time-total">30:00</span>
+        
+        <!-- 监督模式切换 -->
+        <div class="mode-switcher">
+          <span class="mode-label">监督风格</span>
+          <div class="mode-toggle" id="supervision-mode-toggle">
+            <button class="mode-btn active" data-mode="gentle">
+              <i class="fa-solid fa-heart"></i>
+              温柔
+            </button>
+            <button class="mode-btn" data-mode="strict">
+              <i class="fa-solid fa-fire"></i>
+              严厉
+            </button>
         </div>
       </div>
       
-      <!-- 任务队列 -->
-      <div class="task-queue" id="task-queue-section">
-        <p class="queue-label">接下来：</p>
-        <div class="queue-items" id="queue-items"></div>
+        <!-- 检测开关列表 -->
+        <div class="detection-toggles">
+          <label class="detection-item">
+            <span class="detection-icon">🔍</span>
+            <span class="detection-text">乱动检测</span>
+            <input type="checkbox" class="toggle-switch" id="toggle-movement" checked>
+          </label>
+          <label class="detection-item">
+            <span class="detection-icon">👀</span>
+            <span class="detection-text">分心检测</span>
+            <input type="checkbox" class="toggle-switch" id="toggle-distraction" checked>
+          </label>
+          <label class="detection-item">
+            <span class="detection-icon">📱</span>
+            <span class="detection-text">手机检测</span>
+            <input type="checkbox" class="toggle-switch" id="toggle-phone">
+          </label>
+          <label class="detection-item">
+            <span class="detection-icon">🪑</span>
+            <span class="detection-text">坐姿提醒</span>
+            <input type="checkbox" class="toggle-switch" id="toggle-posture">
+          </label>
+        </div>
       </div>
       
-      <!-- 底部控制栏 -->
-      <div class="study-controls">
-        <button class="control-btn" id="btn-pause">
-          <i class="fa-solid fa-pause"></i>
-          <span>暂停</span>
+      <!-- 中间悬浮任务卡片（玻璃态）- 带完成按钮 -->
+      <div class="floating-task-card-v6" id="task-main-card">
+        <div class="task-card-inner-v6">
+          <!-- 左侧：环形进度条+时间 -->
+          <div class="task-progress-section">
+            <svg class="progress-ring-v6" viewBox="0 0 80 80">
+              <defs>
+                <linearGradient id="progressGradientV6" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" style="stop-color:#34D399" />
+                  <stop offset="100%" style="stop-color:#10B981" />
+                </linearGradient>
+              </defs>
+              <circle class="progress-bg-v6" cx="40" cy="40" r="34" />
+              <circle class="progress-fill-v6" id="progress-ring-fill" cx="40" cy="40" r="34" />
+            </svg>
+            <div class="progress-time-v6">
+              <span class="time-big" id="task-time-big">00:00</span>
+        </div>
+          </div>
+          
+          <!-- 中间：任务信息 -->
+          <div class="task-info-v6">
+            <div class="task-label-row">
+              <span class="task-mode-icon" id="task-mode-icon">📚</span>
+              <span class="task-label-v6">当前任务</span>
+              <span class="task-status-tag" id="task-status-tag" style="display: none;">进行中</span>
+            </div>
+            <h3 class="task-title-v6" id="current-task-name-v2">专注学习</h3>
+            <div class="task-meta-v6">
+              <span class="time-total" id="task-time-total-small">30:00</span>
+              <span class="task-index" id="task-index">1/1</span>
+        </div>
+            <!-- 听写进度条（仅听写模式显示） -->
+            <div class="task-progress-bar" id="dictation-progress-bar" style="display: none;">
+              <div class="task-progress-bar-fill" id="dictation-progress-fill" style="width: 0%;"></div>
+            </div>
+        </div>
+          
+          <!-- 右侧：完成按钮 -->
+          <button class="task-complete-btn-v6" id="btn-complete-task">
+            <i class="fa-solid fa-check"></i>
+          </button>
+      </div>
+      
+        <!-- 任务切换指示器 -->
+        <div class="task-dots-v6" id="task-dots">
+          <span class="dot active"></span>
+        </div>
+      </div>
+      
+      <!-- AI对话气泡（叠加在视频下方） -->
+      <div class="ai-bubble-v4" id="ai-bubble">
+        <div class="bubble-content-v4">
+          <span class="bubble-text" id="ai-bubble-text">开始学习啦！一起加油吧！</span>
+        </div>
+      </div>
+      
+      <!-- 背诵模式专属面板（中间悬浮）V5 增强版 -->
+      <div class="recite-panel-v5" id="recite-panel" style="display: none;">
+        <div class="recite-card-v5">
+          <!-- 头部信息 -->
+          <div class="recite-header-v5">
+            <div class="recite-left">
+            <span class="recite-icon">📖</span>
+              <span class="recite-title">背诵任务</span>
+            </div>
+            <div class="recite-right">
+              <span class="recite-status" id="recite-status">准备中</span>
+            </div>
+          </div>
+          
+          <!-- 状态1：等待上传素材 -->
+          <div class="recite-upload-state" id="recite-upload-state">
+            <div class="upload-placeholder">
+              <div class="upload-icon-large">
+                <i class="fa-solid fa-camera"></i>
+              </div>
+              <p class="upload-hint">拍照上传背诵内容</p>
+              <p class="upload-sub">支持古诗、课文、单词等</p>
+            </div>
+            <button class="recite-upload-btn" id="btn-recite-upload">
+              <i class="fa-solid fa-camera"></i>
+              <span>拍照上传</span>
+            </button>
+          </div>
+          
+          <!-- 状态2：背诵内容区域（有素材后显示） -->
+          <div class="recite-content-area-v5" id="recite-content-area" style="display: none;">
+            <!-- 内容预览 -->
+            <div class="content-preview" id="recite-content-preview">
+            <img id="recite-material-img" src="" alt="背诵内容">
+              <div class="content-text-overlay" id="recite-text-content"></div>
+          </div>
+          
+            <!-- 隐藏遮罩 -->
+            <div class="content-hidden-mask" id="content-hidden-mask" style="display: none;">
+              <div class="mask-content">
+            <i class="fa-solid fa-eye-slash"></i>
+                <p>内容已隐藏</p>
+                <p class="hint">开始背诵吧~</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 状态3：背诵进行中 -->
+          <div class="recite-listening-state" id="recite-listening-state" style="display: none;">
+            <!-- 声波动画 -->
+            <div class="voice-wave-container">
+              <div class="voice-wave">
+                <span></span><span></span><span></span><span></span><span></span>
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            </div>
+            
+            <!-- 实时识别文本 -->
+            <div class="live-transcript" id="live-transcript">
+              <p class="transcript-text" id="transcript-text">正在听你背诵...</p>
+          </div>
+          
+            <!-- 提示按钮 -->
+            <button class="hint-btn" id="btn-request-hint">
+              <i class="fa-solid fa-lightbulb"></i>
+              <span>提示一下</span>
+            </button>
+          </div>
+          
+          <!-- 状态4：分析中 -->
+          <div class="recite-analyzing-state" id="recite-analyzing-state" style="display: none;">
+            <div class="analyzing-animation">
+              <div class="analyzing-circle">
+                <svg viewBox="0 0 100 100">
+                  <circle class="track" cx="50" cy="50" r="40" />
+                  <circle class="progress" cx="50" cy="50" r="40" />
+                </svg>
+                <i class="fa-solid fa-brain"></i>
+              </div>
+              <p>小影老师正在批改...</p>
+            </div>
+          </div>
+          
+          <!-- 状态5：结果展示 -->
+          <div class="recite-result-state" id="recite-result-state" style="display: none;">
+            <!-- 准确率环形图 -->
+            <div class="result-ring-container">
+              <svg class="result-ring" viewBox="0 0 120 120">
+                <defs>
+                  <linearGradient id="resultGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style="stop-color:#34D399" />
+                    <stop offset="100%" style="stop-color:#10B981" />
+                  </linearGradient>
+                </defs>
+                <circle class="result-ring-bg" cx="60" cy="60" r="50" />
+                <circle class="result-ring-fill" id="result-ring-fill" cx="60" cy="60" r="50" />
+              </svg>
+              <div class="result-center">
+                <span class="result-accuracy" id="result-accuracy">85</span>
+                <span class="result-percent">%</span>
+              </div>
+            </div>
+            
+            <!-- 状态徽章 -->
+            <div class="result-badge" id="result-badge">
+              <span class="badge-icon">🎉</span>
+              <span class="badge-text" id="result-status-text">背得很棒！</span>
+            </div>
+            
+            <!-- 详细对比（可展开） -->
+            <div class="result-details-toggle" id="result-details-toggle">
+              <span>查看详情</span>
+              <i class="fa-solid fa-chevron-down"></i>
+            </div>
+            <div class="result-details" id="result-details" style="display: none;">
+              <!-- 动态生成 -->
+            </div>
+            
+            <!-- 鼓励语 -->
+            <p class="result-encouragement" id="result-encouragement">继续加油！</p>
+            
+            <!-- 记忆技巧 -->
+            <div class="memory-tip" id="memory-tip" style="display: none;">
+              <i class="fa-solid fa-lightbulb"></i>
+              <span id="memory-tip-text"></span>
+            </div>
+          </div>
+          
+          <!-- 操作按钮区 -->
+          <div class="recite-actions-v5" id="recite-actions">
+            <!-- 准备状态按钮 -->
+            <div class="action-group ready-actions" id="ready-actions" style="display: none;">
+              <button class="recite-btn secondary" id="btn-toggle-content">
+              <i class="fa-solid fa-eye"></i>
+                <span>隐藏内容</span>
+            </button>
+              <button class="recite-btn primary" id="btn-start-recite">
+              <i class="fa-solid fa-microphone"></i>
+              <span>开始背诵</span>
+            </button>
+          </div>
+            
+            <!-- 背诵中按钮 -->
+            <div class="action-group listening-actions" id="listening-actions" style="display: none;">
+              <button class="recite-btn finish" id="btn-finish-recite">
+                <i class="fa-solid fa-check"></i>
+                <span>背完了</span>
+              </button>
+            </div>
+            
+            <!-- 结果状态按钮 -->
+            <div class="action-group result-actions" id="result-actions" style="display: none;">
+              <button class="recite-btn secondary" id="btn-retry-recite">
+                <i class="fa-solid fa-rotate-left"></i>
+                <span>再背一次</span>
+              </button>
+              <button class="recite-btn primary" id="btn-complete-recite">
+                <i class="fa-solid fa-check"></i>
+                <span>完成任务</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 听写模式专属面板（中间悬浮）V5 增强版 -->
+      <div class="dictation-panel-v5" id="dictation-panel" style="display: none;">
+        <div class="dictation-card-v5">
+          <!-- 头部信息 -->
+          <div class="dictation-header-v5">
+            <div class="dictation-left">
+            <span class="dictation-icon">✍️</span>
+              <span class="dictation-title">听写任务</span>
+            </div>
+            <div class="dictation-right">
+              <span class="dictation-status" id="dictation-status">准备中</span>
+            </div>
+          </div>
+          
+          <!-- 进度条 -->
+          <div class="dictation-progress-bar-v5">
+            <div class="progress-fill" id="dictation-progress-fill" style="width: 0%"></div>
+          </div>
+          <div class="dictation-progress-text" id="dictation-progress-text">0 / 10</div>
+          
+          <!-- 状态1：等待词表 -->
+          <div class="dictation-upload-state" id="dictation-upload-state">
+            <div class="upload-placeholder">
+              <div class="upload-icon-large">
+                <i class="fa-solid fa-list-check"></i>
+              </div>
+              <p class="upload-hint">请上传听写词表</p>
+              <p class="upload-sub">可拍照或手动输入词语</p>
+            </div>
+            <button class="dictation-upload-btn" id="btn-dictation-upload">
+              <i class="fa-solid fa-camera"></i>
+              <span>拍照上传</span>
+            </button>
+          </div>
+          
+          <!-- 状态2：朗读/等待状态 -->
+          <div class="dictation-speaking-state" id="dictation-speaking-state" style="display: none;">
+            <!-- 声波动画 -->
+            <div class="speaker-animation-v5" id="speaker-animation">
+              <div class="speaker-icon">
+              <i class="fa-solid fa-volume-high"></i>
+            </div>
+              <div class="sound-waves">
+                <span></span><span></span><span></span>
+              </div>
+          </div>
+          
+            <!-- 当前词语序号 -->
+            <div class="current-word-info">
+              <span class="word-index" id="current-word-index">第 1 个</span>
+            </div>
+            
+            <!-- 提示 -->
+            <p class="dictation-hint-v5">请在纸上写下听到的词语</p>
+            
+            <!-- 倒计时 -->
+            <div class="wait-countdown" id="wait-countdown" style="display: none;">
+              <span class="countdown-text">下一个词语</span>
+              <span class="countdown-time" id="countdown-time">5</span>
+            </div>
+          </div>
+          
+          <!-- 状态3：等待提交 -->
+          <div class="dictation-submit-state" id="dictation-submit-state" style="display: none;">
+            <div class="submit-icon">
+              <i class="fa-solid fa-camera"></i>
+            </div>
+            <h3>听写完成！</h3>
+            <p>请把作业拍照提交给小影老师~</p>
+            <button class="dictation-submit-btn" id="btn-dictation-submit">
+              <i class="fa-solid fa-camera"></i>
+              <span>拍照提交</span>
+            </button>
+          </div>
+          
+          <!-- 状态4：分析中 -->
+          <div class="dictation-analyzing-state" id="dictation-analyzing-state" style="display: none;">
+            <div class="analyzing-animation">
+              <div class="analyzing-circle">
+                <svg viewBox="0 0 100 100">
+                  <circle class="track" cx="50" cy="50" r="40" />
+                  <circle class="progress" cx="50" cy="50" r="40" />
+                </svg>
+                <i class="fa-solid fa-pen-nib"></i>
+              </div>
+              <p>小影老师正在批改...</p>
+            </div>
+          </div>
+          
+          <!-- 状态5：结果展示 -->
+          <div class="dictation-result-state" id="dictation-result-state" style="display: none;">
+            <!-- 成绩统计 -->
+            <div class="dictation-stats">
+              <div class="stat-item correct">
+                <span class="stat-value" id="dictation-correct-count">8</span>
+                <span class="stat-label">正确</span>
+              </div>
+              <div class="stat-item total">
+                <span class="stat-value" id="dictation-total-count">10</span>
+                <span class="stat-label">总数</span>
+              </div>
+              <div class="stat-item accuracy">
+                <span class="stat-value" id="dictation-accuracy">80%</span>
+                <span class="stat-label">正确率</span>
+              </div>
+            </div>
+            
+            <!-- 词语对照列表 -->
+            <div class="dictation-results-list" id="dictation-results-list">
+              <!-- 动态生成 -->
+            </div>
+            
+            <!-- 鼓励语 -->
+            <p class="dictation-encouragement" id="dictation-encouragement">继续加油！</p>
+          </div>
+          
+          <!-- 操作按钮区 -->
+          <div class="dictation-actions-v5" id="dictation-actions">
+            <!-- 朗读中按钮 -->
+            <div class="action-group speaking-actions" id="speaking-actions" style="display: none;">
+              <button class="dictation-btn secondary" id="btn-dictation-repeat">
+              <i class="fa-solid fa-rotate-left"></i>
+              <span>重听</span>
+            </button>
+            <button class="dictation-btn primary" id="btn-dictation-next">
+              <i class="fa-solid fa-forward-step"></i>
+              <span>下一个</span>
+            </button>
+            </div>
+            
+            <!-- 结果状态按钮 -->
+            <div class="action-group result-actions" id="dictation-result-actions" style="display: none;">
+              <button class="dictation-btn secondary" id="btn-dictation-retry">
+                <i class="fa-solid fa-rotate-left"></i>
+                <span>重新听写</span>
+              </button>
+              <button class="dictation-btn primary" id="btn-dictation-complete">
+                <i class="fa-solid fa-check"></i>
+                <span>完成任务</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 听写答案对照面板 -->
+      <div class="dictation-answers-v4" id="dictation-answers" style="display: none;">
+        <div class="answers-card-v4">
+          <div class="answers-header">
+            听写完成！对照答案
+          </div>
+          <!-- 成绩统计 -->
+          <div class="answers-stats">
+            <div class="stat-item">
+              <div class="stat-value" id="correct-count">10</div>
+              <div class="stat-label">正确个数</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value" id="total-count">10</div>
+              <div class="stat-label">总共词语</div>
+            </div>
+          </div>
+          <div class="answers-list" id="dictation-answers-list">
+            <!-- 动态生成答案列表 -->
+          </div>
+          <button class="btn-close-answers" id="btn-close-answers">
+            <i class="fa-solid fa-check"></i>
+            确认完成
+          </button>
+        </div>
+      </div>
+      
+      <!-- 默写模式专属面板（中间悬浮）V5 -->
+      <div class="copywrite-panel-v5" id="copywrite-panel" style="display: none;">
+        <div class="copywrite-card-v5">
+          <!-- 头部信息 -->
+          <div class="copywrite-header-v5">
+            <div class="copywrite-left">
+              <span class="copywrite-icon">📝</span>
+              <span class="copywrite-title">默写任务</span>
+          </div>
+            <div class="copywrite-right">
+              <span class="copywrite-status" id="copywrite-status">准备中</span>
+            </div>
+          </div>
+          
+          <!-- 状态1：等待原文 -->
+          <div class="copywrite-upload-state" id="copywrite-upload-state">
+            <div class="upload-placeholder">
+              <div class="upload-icon-large">
+                <i class="fa-solid fa-file-lines"></i>
+              </div>
+              <p class="upload-hint">请上传默写内容</p>
+              <p class="upload-sub">支持古诗、课文等</p>
+            </div>
+            <button class="copywrite-upload-btn" id="btn-copywrite-upload">
+              <i class="fa-solid fa-camera"></i>
+              <span>拍照上传</span>
         </button>
-        <button class="control-btn primary" id="btn-complete-task">
-          <i class="fa-solid fa-check"></i>
-          <span>完成</span>
+          </div>
+          
+          <!-- 状态2：记忆阶段 -->
+          <div class="copywrite-memorize-state" id="copywrite-memorize-state" style="display: none;">
+            <!-- 倒计时 -->
+            <div class="memorize-countdown">
+              <div class="countdown-ring">
+                <svg viewBox="0 0 100 100">
+                  <circle class="countdown-bg" cx="50" cy="50" r="40" />
+                  <circle class="countdown-fill" id="countdown-ring-fill" cx="50" cy="50" r="40" />
+                </svg>
+                <span class="countdown-number" id="memorize-countdown">60</span>
+              </div>
+              <p class="countdown-label">记忆倒计时</p>
+            </div>
+            
+            <!-- 原文展示 -->
+            <div class="original-text-display" id="original-text-display">
+              <p class="original-text" id="copywrite-original-text">在这里显示默写内容...</p>
+            </div>
+            
+            <button class="copywrite-btn primary" id="btn-start-writing">
+              <i class="fa-solid fa-pen"></i>
+              <span>我记住了，开始默写</span>
         </button>
-        <button class="control-btn danger" id="btn-end-study">
-          <i class="fa-solid fa-stop"></i>
-          <span>结束</span>
+          </div>
+          
+          <!-- 状态3：默写中 -->
+          <div class="copywrite-writing-state" id="copywrite-writing-state" style="display: none;">
+            <div class="writing-hint">
+              <div class="writing-icon">
+                <i class="fa-solid fa-pen-fancy"></i>
+              </div>
+              <h3>认真默写中...</h3>
+              <p>在纸上写下刚才记忆的内容</p>
+              <p class="writing-tip">写完后点击下方按钮提交</p>
+            </div>
+          </div>
+          
+          <!-- 状态4：等待提交 -->
+          <div class="copywrite-submit-state" id="copywrite-submit-state" style="display: none;">
+            <div class="submit-icon">
+              <i class="fa-solid fa-camera"></i>
+            </div>
+            <h3>默写完成！</h3>
+            <p>请把作业拍照提交给小影老师~</p>
+            <button class="copywrite-submit-btn" id="btn-copywrite-submit">
+              <i class="fa-solid fa-camera"></i>
+              <span>拍照提交</span>
+            </button>
+          </div>
+          
+          <!-- 状态5：分析中 -->
+          <div class="copywrite-analyzing-state" id="copywrite-analyzing-state" style="display: none;">
+            <div class="analyzing-animation">
+              <div class="analyzing-circle">
+                <svg viewBox="0 0 100 100">
+                  <circle class="track" cx="50" cy="50" r="40" />
+                  <circle class="progress" cx="50" cy="50" r="40" />
+                </svg>
+                <i class="fa-solid fa-magnifying-glass"></i>
+              </div>
+              <p>小影老师正在批改...</p>
+            </div>
+          </div>
+          
+          <!-- 状态6：结果展示 -->
+          <div class="copywrite-result-state" id="copywrite-result-state" style="display: none;">
+            <!-- 准确率 -->
+            <div class="copywrite-accuracy-display">
+              <div class="accuracy-ring">
+                <svg viewBox="0 0 120 120">
+                  <defs>
+                    <linearGradient id="copywriteGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" style="stop-color:#F59E0B" />
+                      <stop offset="100%" style="stop-color:#D97706" />
+                    </linearGradient>
+                  </defs>
+                  <circle class="accuracy-ring-bg" cx="60" cy="60" r="50" />
+                  <circle class="accuracy-ring-fill" id="copywrite-accuracy-ring" cx="60" cy="60" r="50" />
+                </svg>
+                <div class="accuracy-center">
+                  <span class="accuracy-value" id="copywrite-accuracy-value">90</span>
+                  <span class="accuracy-percent">%</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 统计 -->
+            <div class="copywrite-stats">
+              <div class="stat-item">
+                <span class="stat-value" id="copywrite-correct-chars">45</span>
+                <span class="stat-label">正确</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value" id="copywrite-total-chars">50</span>
+                <span class="stat-label">总字数</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value" id="copywrite-error-count">5</span>
+                <span class="stat-label">错误</span>
+              </div>
+            </div>
+            
+            <!-- 错误列表 -->
+            <div class="copywrite-errors" id="copywrite-errors" style="display: none;">
+              <div class="errors-header">错误详情</div>
+              <div class="errors-list" id="copywrite-errors-list">
+                <!-- 动态生成 -->
+              </div>
+            </div>
+            
+            <!-- 鼓励语 -->
+            <p class="copywrite-encouragement" id="copywrite-encouragement">继续加油！</p>
+          </div>
+          
+          <!-- 操作按钮区 -->
+          <div class="copywrite-actions-v5" id="copywrite-actions">
+            <!-- 默写中按钮 -->
+            <div class="action-group writing-actions" id="writing-actions" style="display: none;">
+              <button class="copywrite-btn primary" id="btn-finish-writing">
+            <i class="fa-solid fa-check"></i>
+                <span>写完了</span>
+              </button>
+          </div>
+            
+            <!-- 结果状态按钮 -->
+            <div class="action-group result-actions" id="copywrite-result-actions" style="display: none;">
+              <button class="copywrite-btn secondary" id="btn-copywrite-retry">
+                <i class="fa-solid fa-rotate-left"></i>
+                <span>重新默写</span>
         </button>
+              <button class="copywrite-btn primary" id="btn-copywrite-complete">
+                <i class="fa-solid fa-check"></i>
+                <span>完成任务</span>
+              </button>
+          </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 底部控制栏（2按钮：摄像头、举手） -->
+      <div class="controls-bar-v6">
+        <button class="control-btn-v6" id="btn-camera-toggle">
+          <div class="btn-icon-v6">
+            <i class="fa-solid fa-video"></i>
+          </div>
+          <span>摄像头</span>
+        </button>
+        <button class="control-btn-v6 highlight" id="btn-help" onclick="CozeRealtime.startHelper()">
+          <div class="btn-icon-v6 hand-icon">
+            <i class="fa-solid fa-hand"></i>
+          </div>
+          <span>举手</span>
+        </button>
+      </div>
+      
+      <!-- 成就弹窗 -->
+      <div class="achievement-popup" id="achievement-popup" style="display: none;">
+        <div class="achievement-content">
+          <div class="achievement-icon">🎉</div>
+          <h3 class="achievement-title">任务完成！</h3>
+          <p class="achievement-desc">获得 <span id="achievement-points">+10</span> 积分</p>
+          <div class="achievement-stars">⭐⭐⭐</div>
+        </div>
+      </div>
+      
+      <!-- 专注度提醒弹窗 -->
+      <div class="focus-alert-overlay" id="focus-alert">
+        <div class="focus-alert-content">
+          <div class="alert-avatar">
+            <video autoplay loop muted playsinline>
+              <source src="assets/images/xiaoying-avatar.mp4" type="video/mp4">
+            </video>
+          </div>
+          <div class="alert-message">
+            <h3>👋 小特工，注意啦！</h3>
+            <p>老师发现你好像走神了~<br>让我们继续专注学习吧！</p>
+          </div>
+          <button class="btn-focus-back" id="btn-focus-back">
+            <i class="fa-solid fa-book-open"></i>
+            继续学习
+          </button>
+        </div>
+      </div>
+      
+    </div>
+    
+    <!-- Toast容器 -->
+    <div class="toast-container" id="toast-container"></div>
+    
+    <!-- 确认弹窗 -->
+    <div class="dialog-overlay" id="dialog-overlay">
+      <div class="dialog-box" id="dialog-box">
+        <div class="dialog-header">
+          <div class="dialog-icon" id="dialog-icon">⚠️</div>
+          <h3 class="dialog-title" id="dialog-title">确认操作</h3>
+        </div>
+        <div class="dialog-body">
+          <p class="dialog-message" id="dialog-message">确定要执行此操作吗？</p>
+        </div>
+        <div class="dialog-actions">
+          <button class="dialog-btn cancel" id="dialog-cancel">取消</button>
+          <button class="dialog-btn confirm" id="dialog-confirm">确认</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 走神提醒弹窗 -->
+    <div class="dialog-overlay" id="alert-overlay">
+      <div class="dialog-box alert-dialog">
+        <div class="dialog-header">
+          <div class="dialog-icon">👋</div>
+          <h3 class="dialog-title">注意力提醒</h3>
+        </div>
+        <div class="dialog-body">
+          <p class="dialog-message">小特工，是不是走神了？<br>让我们继续专注学习吧！</p>
+        </div>
+        <div class="dialog-actions">
+          <button class="dialog-btn confirm" id="alert-confirm">继续学习</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 任务完成庆祝 -->
+    <div class="celebration-overlay" id="celebration-overlay">
+      <div class="celebration-trophy">🏆</div>
+      <h2 class="celebration-title">任务完成！</h2>
+      <div class="celebration-stats">
+        <div class="celebration-stat">
+          <span class="stat-value-big" id="cel-duration">30</span>
+          <span class="stat-label-big">分钟</span>
+        </div>
+        <div class="celebration-stat">
+          <span class="stat-value-big" id="cel-focus">95%</span>
+          <span class="stat-label-big">专注度</span>
+        </div>
+      </div>
+      <div class="celebration-reward">
+        <span class="reward-icon">⭐</span>
+        <span class="reward-text">+<span id="cel-points">50</span> 积分</span>
+      </div>
+      <div class="celebration-actions">
+        <button class="celebration-btn secondary" id="cel-share">分享成就</button>
+        <button class="celebration-btn primary" id="cel-continue">返回首页</button>
       </div>
     </div>
     
@@ -514,11 +1572,14 @@
         <p class="complete-subtitle">特工表现出色！</p>
         
         <div class="complete-reward">
-          <div class="reward-stars">
-            <i class="fa-solid fa-star"></i>
-            <span id="reward-stars">+50</span>
+          <div class="reward-stars-wrapper">
+            <i class="fa-solid fa-star star-icon"></i>
+            <span class="reward-stars-value" id="reward-stars">+50</span>
           </div>
-          <p>获得特工积分</p>
+          <p class="reward-label">获得特工积分</p>
+          <div class="reward-breakdown" id="reward-breakdown">
+            <!-- 动态生成奖励明细 -->
+          </div>
         </div>
         
         <div class="complete-stats">
@@ -557,6 +1618,78 @@
     </div>
     
     <!-- ==========================================
+         任务记录页面
+         ========================================== -->
+    <div class="page detail-page" id="page-history">
+      <div class="detail-header">
+        <button class="btn-back" id="btn-history-back">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <h1>任务记录</h1>
+        <div class="detail-filter">
+          <button class="filter-btn active" data-filter="all">全部</button>
+          <button class="filter-btn" data-filter="week">本周</button>
+          <button class="filter-btn" data-filter="month">本月</button>
+        </div>
+      </div>
+      
+      <div class="detail-stats">
+        <div class="stat-item">
+          <div class="stat-value" id="total-study-time">0</div>
+          <div class="stat-label">总学习时长(分钟)</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="total-tasks-done">0</div>
+          <div class="stat-label">完成任务</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="avg-focus-score">0%</div>
+          <div class="stat-label">平均专注度</div>
+        </div>
+      </div>
+      
+      <div class="detail-list" id="history-list">
+        <!-- 动态渲染任务记录 -->
+      </div>
+    </div>
+    
+    <!-- ==========================================
+         特工成就页面
+         ========================================== -->
+    <div class="page detail-page" id="page-achievements">
+      <div class="detail-header">
+        <button class="btn-back" id="btn-achievements-back">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <h1>特工成就</h1>
+        <div class="detail-filter">
+          <button class="filter-btn active" data-filter="all">全部</button>
+          <button class="filter-btn" data-filter="unlocked">已解锁</button>
+          <button class="filter-btn" data-filter="locked">未解锁</button>
+        </div>
+      </div>
+      
+      <div class="detail-stats">
+        <div class="stat-item">
+          <div class="stat-value" id="achievements-unlocked">0</div>
+          <div class="stat-label">已解锁</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="achievements-total">0</div>
+          <div class="stat-label">总成就</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="achievements-points">0</div>
+          <div class="stat-label">成就积分</div>
+        </div>
+      </div>
+      
+      <div class="detail-list" id="achievements-list">
+        <!-- 动态渲染成就列表 -->
+      </div>
+    </div>
+    
+    <!-- ==========================================
          手动添加任务弹窗
          ========================================== -->
     <div class="modal" id="modal-add-task">
@@ -569,6 +1702,25 @@
           </button>
         </div>
         <div class="modal-body">
+          <!-- 任务模式选择 -->
+          <div class="form-group">
+            <label>任务模式</label>
+            <div class="mode-selector">
+              <button class="mode-btn active" data-mode="homework">
+                <i class="fa-solid fa-book"></i>
+                <span>作业</span>
+              </button>
+              <button class="mode-btn" data-mode="recite">
+                <i class="fa-solid fa-microphone"></i>
+                <span>背诵</span>
+              </button>
+              <button class="mode-btn" data-mode="dictation">
+                <i class="fa-solid fa-pen"></i>
+                <span>听写</span>
+              </button>
+            </div>
+          </div>
+          
           <div class="form-group">
             <label>任务名称</label>
             <input type="text" id="input-task-name" placeholder="例如：语文作业、背诵古诗...">
@@ -577,17 +1729,37 @@
             <label>预计时间</label>
             <div class="time-selector">
               <button class="time-btn" data-time="10">10分钟</button>
+              <button class="time-btn" data-time="15">15分钟</button>
               <button class="time-btn active" data-time="20">20分钟</button>
               <button class="time-btn" data-time="30">30分钟</button>
             </div>
           </div>
           <div class="form-group">
-            <label>任务类型</label>
+            <label>任务科目</label>
             <div class="type-selector">
               <button class="type-btn active" data-type="语文">📖 语文</button>
               <button class="type-btn" data-type="数学">🔢 数学</button>
               <button class="type-btn" data-type="英语">🔤 英语</button>
               <button class="type-btn" data-type="其他">✏️ 其他</button>
+            </div>
+          </div>
+          
+          <!-- 材料上传区域（背诵/听写模式显示） -->
+          <div class="form-group material-upload-group" id="material-upload-group" style="display: none;">
+            <label>上传内容 <span class="optional-tag">可稍后上传</span></label>
+            <div class="material-upload-area" id="material-upload-area">
+              <input type="file" id="material-file-input" accept="image/*" style="display: none;">
+              <div class="upload-placeholder" id="upload-placeholder">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <p>点击上传或拍照</p>
+                <span>支持 JPG、PNG 格式</span>
+              </div>
+              <div class="upload-preview" id="upload-preview" style="display: none;">
+                <img id="material-preview-img" src="" alt="预览">
+                <button class="btn-remove-material" id="btn-remove-material">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -642,10 +1814,947 @@
       </div>
     </div>
     
+    <!-- ==========================================
+         材料上传弹窗（开始学习时提醒）
+         ========================================== -->
+    <div class="modal" id="modal-material-upload">
+      <div class="modal-overlay"></div>
+      <div class="modal-content modal-material">
+        <div class="modal-header">
+          <div class="modal-icon-header">
+            <i class="fa-solid fa-image" id="material-modal-icon"></i>
+          </div>
+          <h2 id="material-modal-title">需要上传背诵内容</h2>
+          <button class="modal-close" id="modal-material-close">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="material-task-name" id="material-task-name">当前任务：背诵《静夜思》</p>
+          <p class="material-hint" id="material-hint">请上传需要背诵的内容图片，AI将帮助你练习</p>
+          
+          <div class="material-upload-buttons">
+            <button class="material-btn camera" id="btn-material-camera">
+              <i class="fa-solid fa-camera"></i>
+              <span>拍照上传</span>
+            </button>
+            <button class="material-btn gallery" id="btn-material-gallery">
+              <i class="fa-solid fa-images"></i>
+              <span>相册选择</span>
+            </button>
+          </div>
+          
+          <input type="file" id="material-modal-file-input" accept="image/*" style="display: none;">
+          
+          <!-- 预览区域 -->
+          <div class="material-modal-preview" id="material-modal-preview" style="display: none;">
+            <img id="material-modal-preview-img" src="" alt="预览">
+            <button class="btn-change-material" id="btn-change-material">
+              <i class="fa-solid fa-arrows-rotate"></i> 更换
+            </button>
+          </div>
+        </div>
+        <div class="modal-footer material-footer">
+          <button class="btn-skip-material" id="btn-skip-material">
+            <i class="fa-solid fa-forward"></i> 跳过此任务
+          </button>
+          <button class="btn-confirm-material" id="btn-confirm-material" disabled>
+            <i class="fa-solid fa-check"></i> 开始学习
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 求助对话框已移除 - 改为纯语音交互，无弹窗 -->
+    
+    <!-- ==========================================
+         家长中心页面
+         ========================================== -->
+    <div class="page detail-page" id="page-parent">
+      <div class="detail-header">
+        <button class="btn-back" id="btn-back-parent">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <h1>家长中心</h1>
+        <div class="header-action">
+          <button class="btn-action" id="btn-parent-settings">
+          <i class="fa-solid fa-gear"></i>
+        </button>
+        </div>
+      </div>
+      
+      <!-- 本周概览 -->
+      <div class="detail-stats" style="margin-bottom: 0;">
+        <div class="stat-item">
+          <div class="stat-value" id="parent-total-tasks">0</div>
+          <div class="stat-label">完成任务</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="parent-total-time">0h</div>
+          <div class="stat-label">学习时长</div>
+          </div>
+        <div class="stat-item">
+          <div class="stat-value" id="parent-focus-score">0%</div>
+          <div class="stat-label">平均专注</div>
+          </div>
+        <div class="stat-item">
+          <div class="stat-value" id="parent-streak">0</div>
+          <div class="stat-label">连续天数</div>
+        </div>
+      </div>
+      
+      <div class="detail-list" style="padding-top: 16px;">
+      
+      <!-- 学习趋势图 -->
+      <div class="detail-card">
+        <div class="detail-card-header" style="margin-bottom: 0;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 18px;">📈</span>
+            <span style="font-size: 15px; font-weight: 600; color: #1F2937;">学习趋势</span>
+          </div>
+          <div class="trend-tabs">
+            <button class="trend-tab active" data-period="week">本周</button>
+            <button class="trend-tab" data-period="month">本月</button>
+          </div>
+        </div>
+        <div class="trend-chart-container">
+          <div class="trend-chart-bars" id="chart-bars">
+            <div class="trend-bar-wrapper">
+              <div class="trend-bar-fill" style="height: 24px;"></div>
+              <span class="trend-bar-label">周一</span>
+          </div>
+            <div class="trend-bar-wrapper">
+              <div class="trend-bar-fill" style="height: 52px;"></div>
+              <span class="trend-bar-label">周二</span>
+          </div>
+            <div class="trend-bar-wrapper">
+              <div class="trend-bar-fill" style="height: 36px;"></div>
+              <span class="trend-bar-label">周三</span>
+            </div>
+            <div class="trend-bar-wrapper">
+              <div class="trend-bar-fill" style="height: 64px;"></div>
+              <span class="trend-bar-label">周四</span>
+            </div>
+            <div class="trend-bar-wrapper">
+              <div class="trend-bar-fill" style="height: 44px;"></div>
+              <span class="trend-bar-label">周五</span>
+            </div>
+            <div class="trend-bar-wrapper">
+              <div class="trend-bar-fill" style="height: 72px;"></div>
+              <span class="trend-bar-label">周六</span>
+            </div>
+            <div class="trend-bar-wrapper today">
+              <div class="trend-bar-fill" style="height: 32px;"></div>
+              <span class="trend-bar-label">今天</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 科目分布 -->
+      <div class="detail-card">
+        <div class="detail-card-header" style="margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 18px;">📊</span>
+            <span style="font-size: 15px; font-weight: 600; color: #1F2937;">科目分布</span>
+        </div>
+            </div>
+        <div class="subject-distribution-v2" id="subject-distribution">
+          <div class="subject-item-v2">
+            <div class="subject-icon-v2" style="background: linear-gradient(135deg, #F87171, #EF4444);">📖</div>
+            <div class="subject-info-v2">
+              <span class="subject-name-v2">语文</span>
+              <div class="subject-bar-v2">
+                <div class="subject-fill-v2" style="width: 40%; background: linear-gradient(90deg, #F87171, #EF4444);"></div>
+              </div>
+            </div>
+            <span class="subject-percent-v2">40%</span>
+          </div>
+          <div class="subject-item-v2">
+            <div class="subject-icon-v2" style="background: linear-gradient(135deg, #60A5FA, #3B82F6);">🔢</div>
+            <div class="subject-info-v2">
+              <span class="subject-name-v2">数学</span>
+              <div class="subject-bar-v2">
+                <div class="subject-fill-v2" style="width: 35%; background: linear-gradient(90deg, #60A5FA, #3B82F6);"></div>
+            </div>
+              </div>
+            <span class="subject-percent-v2">35%</span>
+            </div>
+          <div class="subject-item-v2">
+            <div class="subject-icon-v2" style="background: linear-gradient(135deg, #A78BFA, #8B5CF6);">🔤</div>
+            <div class="subject-info-v2">
+              <span class="subject-name-v2">英语</span>
+              <div class="subject-bar-v2">
+                <div class="subject-fill-v2" style="width: 25%; background: linear-gradient(90deg, #A78BFA, #8B5CF6);"></div>
+          </div>
+            </div>
+            <span class="subject-percent-v2">25%</span>
+              </div>
+        </div>
+      </div>
+      
+      <!-- 管理功能 -->
+      <div class="detail-card">
+        <div class="detail-card-header" style="margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 18px;">⚙️</span>
+            <span style="font-size: 15px; font-weight: 600; color: #1F2937;">管理功能</span>
+          </div>
+        </div>
+        <div class="manage-menu-v2">
+          <div class="manage-item-v2" id="btn-set-goals">
+            <div class="manage-icon-v2" style="background: linear-gradient(135deg, #F87171, #EF4444);">
+              <i class="fa-solid fa-bullseye"></i>
+            </div>
+            <div class="manage-info-v2">
+              <span class="manage-title-v2">学习目标设置</span>
+              <span class="manage-desc-v2">设置每日学习时长目标</span>
+            </div>
+            <i class="fa-solid fa-chevron-right manage-arrow-v2"></i>
+          </div>
+          <div class="manage-item-v2" id="btn-set-rewards">
+            <div class="manage-icon-v2" style="background: linear-gradient(135deg, #FBBF24, #F59E0B);">
+              <i class="fa-solid fa-gift"></i>
+            </div>
+            <div class="manage-info-v2">
+              <span class="manage-title-v2">奖励规则</span>
+              <span class="manage-desc-v2">自定义星星奖励规则</span>
+            </div>
+            <i class="fa-solid fa-chevron-right manage-arrow-v2"></i>
+          </div>
+          <div class="manage-item-v2" id="btn-view-history">
+            <div class="manage-icon-v2" style="background: linear-gradient(135deg, #60A5FA, #3B82F6);">
+              <i class="fa-solid fa-clock-rotate-left"></i>
+            </div>
+            <div class="manage-info-v2">
+              <span class="manage-title-v2">历史记录</span>
+              <span class="manage-desc-v2">查看所有学习记录</span>
+            </div>
+            <i class="fa-solid fa-chevron-right manage-arrow-v2"></i>
+          </div>
+          <div class="manage-item-v2" id="btn-notifications">
+            <div class="manage-icon-v2" style="background: linear-gradient(135deg, #A78BFA, #8B5CF6);">
+              <i class="fa-solid fa-bell"></i>
+            </div>
+            <div class="manage-info-v2">
+              <span class="manage-title-v2">提醒设置</span>
+              <span class="manage-desc-v2">设置学习提醒时间</span>
+            </div>
+            <i class="fa-solid fa-chevron-right manage-arrow-v2"></i>
+          </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+    <!-- ==========================================
+         设置页面
+         ========================================== -->
+    <div class="page detail-page" id="page-settings">
+      <div class="detail-header">
+        <button class="btn-back" id="btn-settings-back">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <h1>设置</h1>
+        <div style="width: 36px;"></div>
+        </div>
+      
+      <div class="detail-list">
+        <!-- 账号设置 -->
+        <div class="detail-card">
+          <div class="detail-card-header" style="margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 18px;">👤</span>
+              <span style="font-size: 15px; font-weight: 600; color: #1F2937;">账号设置</span>
+            </div>
+          </div>
+          <div class="settings-list">
+            <div class="settings-item">
+              <div class="settings-icon" style="background: linear-gradient(135deg, #60A5FA, #3B82F6);">
+                <i class="fa-solid fa-user"></i>
+            </div>
+              <div class="settings-info">
+                <span class="settings-title">个人资料</span>
+                <span class="settings-desc">修改头像、昵称等信息</span>
+          </div>
+              <i class="fa-solid fa-chevron-right settings-arrow"></i>
+            </div>
+            <div class="settings-item">
+              <div class="settings-icon" style="background: linear-gradient(135deg, #A78BFA, #8B5CF6);">
+                <i class="fa-solid fa-key"></i>
+          </div>
+              <div class="settings-info">
+                <span class="settings-title">账号安全</span>
+                <span class="settings-desc">密码、绑定手机等</span>
+            </div>
+              <i class="fa-solid fa-chevron-right settings-arrow"></i>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 学习设置 -->
+        <div class="detail-card">
+          <div class="detail-card-header" style="margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 18px;">📚</span>
+              <span style="font-size: 15px; font-weight: 600; color: #1F2937;">学习设置</span>
+            </div>
+          </div>
+          <div class="settings-list">
+            <div class="settings-item">
+              <div class="settings-icon" style="background: linear-gradient(135deg, #34D399, #10B981);">
+                <i class="fa-solid fa-clock"></i>
+              </div>
+              <div class="settings-info">
+                <span class="settings-title">学习提醒</span>
+                <span class="settings-desc">设置每日学习提醒时间</span>
+              </div>
+              <div class="settings-toggle">
+                <input type="checkbox" id="toggle-reminder" checked>
+                <label for="toggle-reminder"></label>
+              </div>
+            </div>
+            <div class="settings-item">
+              <div class="settings-icon" style="background: linear-gradient(135deg, #FBBF24, #F59E0B);">
+                <i class="fa-solid fa-bullseye"></i>
+              </div>
+              <div class="settings-info">
+                <span class="settings-title">每日目标</span>
+                <span class="settings-desc">当前：30分钟/天</span>
+              </div>
+              <i class="fa-solid fa-chevron-right settings-arrow"></i>
+            </div>
+            <div class="settings-item">
+              <div class="settings-icon" style="background: linear-gradient(135deg, #F472B6, #EC4899);">
+                <i class="fa-solid fa-volume-high"></i>
+              </div>
+              <div class="settings-info">
+                <span class="settings-title">提示音效</span>
+                <span class="settings-desc">任务完成、专注提醒等</span>
+              </div>
+              <div class="settings-toggle">
+                <input type="checkbox" id="toggle-sound" checked>
+                <label for="toggle-sound"></label>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 通用设置 -->
+        <div class="detail-card">
+          <div class="detail-card-header" style="margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 18px;">⚙️</span>
+              <span style="font-size: 15px; font-weight: 600; color: #1F2937;">通用设置</span>
+            </div>
+          </div>
+          <div class="settings-list">
+            <div class="settings-item">
+              <div class="settings-icon" style="background: linear-gradient(135deg, #9CA3AF, #6B7280);">
+                <i class="fa-solid fa-palette"></i>
+              </div>
+              <div class="settings-info">
+                <span class="settings-title">主题外观</span>
+                <span class="settings-desc">跟随系统</span>
+              </div>
+              <i class="fa-solid fa-chevron-right settings-arrow"></i>
+            </div>
+            <div class="settings-item">
+              <div class="settings-icon" style="background: linear-gradient(135deg, #60A5FA, #3B82F6);">
+                <i class="fa-solid fa-language"></i>
+              </div>
+              <div class="settings-info">
+                <span class="settings-title">语言</span>
+                <span class="settings-desc">简体中文</span>
+              </div>
+              <i class="fa-solid fa-chevron-right settings-arrow"></i>
+            </div>
+            <div class="settings-item">
+              <div class="settings-icon" style="background: linear-gradient(135deg, #F87171, #EF4444);">
+                <i class="fa-solid fa-trash"></i>
+              </div>
+              <div class="settings-info">
+                <span class="settings-title">清除缓存</span>
+                <span class="settings-desc">释放存储空间</span>
+              </div>
+              <i class="fa-solid fa-chevron-right settings-arrow"></i>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 关于 -->
+        <div class="detail-card">
+          <div class="detail-card-header" style="margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 18px;">ℹ️</span>
+              <span style="font-size: 15px; font-weight: 600; color: #1F2937;">关于</span>
+            </div>
+          </div>
+          <div class="settings-list">
+            <div class="settings-item">
+              <div class="settings-icon" style="background: linear-gradient(135deg, #10B981, #059669);">
+                <i class="fa-solid fa-info-circle"></i>
+              </div>
+              <div class="settings-info">
+                <span class="settings-title">版本信息</span>
+                <span class="settings-desc">v1.0.0</span>
+              </div>
+              <i class="fa-solid fa-chevron-right settings-arrow"></i>
+            </div>
+            <div class="settings-item">
+              <div class="settings-icon" style="background: linear-gradient(135deg, #A78BFA, #8B5CF6);">
+                <i class="fa-solid fa-file-lines"></i>
+              </div>
+              <div class="settings-info">
+                <span class="settings-title">用户协议</span>
+              </div>
+              <i class="fa-solid fa-chevron-right settings-arrow"></i>
+            </div>
+            <div class="settings-item">
+              <div class="settings-icon" style="background: linear-gradient(135deg, #FBBF24, #F59E0B);">
+                <i class="fa-solid fa-shield"></i>
+              </div>
+              <div class="settings-info">
+                <span class="settings-title">隐私政策</span>
+              </div>
+              <i class="fa-solid fa-chevron-right settings-arrow"></i>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 退出登录 -->
+        <button class="btn-logout" id="btn-logout">
+          <i class="fa-solid fa-right-from-bracket"></i>
+          退出登录
+        </button>
+      </div>
+    </div>
+    
+    <!-- ==========================================
+         设置相关弹窗
+         ========================================== -->
+    
+    <!-- 个人资料弹窗 -->
+    <div class="modal" id="modal-profile">
+      <div class="modal-overlay" onclick="closeSettingsModal('profile')"></div>
+      <div class="modal-content modal-settings">
+        <div class="modal-header">
+          <h2>个人资料</h2>
+          <button class="modal-close" onclick="closeSettingsModal('profile')">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="profile-avatar-edit">
+            <img src="assets/images/xiaoying-avatar.png" alt="头像" class="profile-avatar-img">
+            <button class="btn-change-avatar">更换头像</button>
+          </div>
+          <div class="form-group">
+            <label>昵称</label>
+            <input type="text" id="input-nickname" value="小特工" placeholder="请输入昵称">
+          </div>
+          <div class="form-group">
+            <label>性别</label>
+            <div class="gender-options">
+              <label class="gender-option active"><input type="radio" name="gender" value="male" checked> 👦 男生</label>
+              <label class="gender-option"><input type="radio" name="gender" value="female"> 👧 女生</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>年级</label>
+            <select id="select-grade">
+              <option value="1">一年级</option>
+              <option value="2">二年级</option>
+              <option value="3" selected>三年级</option>
+              <option value="4">四年级</option>
+              <option value="5">五年级</option>
+              <option value="6">六年级</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="closeSettingsModal('profile')">取消</button>
+          <button class="btn-primary" onclick="saveProfile()">保存</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 每日目标弹窗 -->
+    <div class="modal" id="modal-daily-goal">
+      <div class="modal-overlay" onclick="closeSettingsModal('daily-goal')"></div>
+      <div class="modal-content modal-settings">
+        <div class="modal-header">
+          <h2>每日学习目标</h2>
+          <button class="modal-close" onclick="closeSettingsModal('daily-goal')">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="goal-options">
+            <label class="goal-option" data-value="15">
+              <input type="radio" name="daily-goal" value="15">
+              <span class="goal-time">15分钟</span>
+              <span class="goal-desc">轻松起步</span>
+            </label>
+            <label class="goal-option active" data-value="30">
+              <input type="radio" name="daily-goal" value="30" checked>
+              <span class="goal-time">30分钟</span>
+              <span class="goal-desc">推荐目标</span>
+            </label>
+            <label class="goal-option" data-value="45">
+              <input type="radio" name="daily-goal" value="45">
+              <span class="goal-time">45分钟</span>
+              <span class="goal-desc">稳步提升</span>
+            </label>
+            <label class="goal-option" data-value="60">
+              <input type="radio" name="daily-goal" value="60">
+              <span class="goal-time">60分钟</span>
+              <span class="goal-desc">挑战自我</span>
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-primary" onclick="saveDailyGoal()">确定</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 主题外观弹窗 -->
+    <div class="modal" id="modal-theme">
+      <div class="modal-overlay" onclick="closeSettingsModal('theme')"></div>
+      <div class="modal-content modal-settings">
+        <div class="modal-header">
+          <h2>主题外观</h2>
+          <button class="modal-close" onclick="closeSettingsModal('theme')">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="theme-options">
+            <label class="theme-option active" data-value="system">
+              <input type="radio" name="theme" value="system" checked>
+              <div class="theme-preview theme-system"></div>
+              <span>跟随系统</span>
+            </label>
+            <label class="theme-option" data-value="light">
+              <input type="radio" name="theme" value="light">
+              <div class="theme-preview theme-light"></div>
+              <span>浅色模式</span>
+            </label>
+            <label class="theme-option" data-value="dark">
+              <input type="radio" name="theme" value="dark">
+              <div class="theme-preview theme-dark"></div>
+              <span>深色模式</span>
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-primary" onclick="saveTheme()">确定</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 版本信息弹窗 -->
+    <div class="modal" id="modal-version">
+      <div class="modal-overlay" onclick="closeSettingsModal('version')"></div>
+      <div class="modal-content modal-settings">
+        <div class="modal-header">
+          <h2>版本信息</h2>
+          <button class="modal-close" onclick="closeSettingsModal('version')">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="modal-body" style="text-align: center; padding: 30px 20px;">
+          <div class="version-logo">
+            <img src="assets/images/xiaoying-avatar.png" alt="Logo" style="width: 80px; height: 80px; border-radius: 20px;">
+          </div>
+          <h3 style="margin: 16px 0 8px; font-size: 18px; color: #1F2937;">AI督学 - 小影老师</h3>
+          <p style="color: #9CA3AF; font-size: 14px;">版本 v1.0.0</p>
+          <div style="margin-top: 20px; padding: 16px; background: #F9FAFB; border-radius: 12px;">
+            <p style="font-size: 13px; color: #6B7280; line-height: 1.6;">
+              🎯 AI驱动的智能督学助手<br>
+              帮助孩子养成良好学习习惯
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- ==========================================
+         AI智能体设置弹窗
+         ========================================== -->
+    <div class="modal modal-agent-settings" id="modal-agent-settings">
+      <div class="modal-overlay" onclick="closeAgentSettingsModal()"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-icon">
+            <i class="fa-solid fa-robot"></i>
+          </div>
+          <h2>AI智能体设置</h2>
+          <button class="modal-close" onclick="closeAgentSettingsModal()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        
+        <div class="modal-body">
+          <!-- 智能体状态 -->
+          <div class="agent-status-section">
+            <h3 class="section-title">智能体状态</h3>
+            
+            <!-- 监督智能体 -->
+            <div class="agent-card" id="agent-supervisor-card">
+              <div class="agent-avatar">
+                <img src="assets/images/xiaoying-avatar.png" alt="小影老师">
+                <span class="status-dot" id="supervisor-status-dot"></span>
+              </div>
+              <div class="agent-info">
+                <h4>小影老师 - 督学模式</h4>
+                <p class="agent-desc">实时监督学习，提供鼓励和提醒</p>
+                <span class="agent-status" id="supervisor-status-text">检查中...</span>
+              </div>
+              <button class="btn-agent-action" id="btn-create-supervisor" onclick="createSupervisorBot()">
+                <i class="fa-solid fa-plus"></i>
+              </button>
+            </div>
+            
+            <!-- 求助智能体 -->
+            <div class="agent-card" id="agent-helper-card">
+              <div class="agent-avatar">
+                <img src="assets/images/xiaoying-avatar.png" alt="小影老师">
+                <span class="status-dot" id="helper-status-dot"></span>
+              </div>
+              <div class="agent-info">
+                <h4>小影老师 - 答疑模式</h4>
+                <p class="agent-desc">解答学习问题，提供学习辅导</p>
+                <span class="agent-status" id="helper-status-text">检查中...</span>
+              </div>
+              <button class="btn-agent-action" id="btn-create-helper" onclick="createHelperBot()">
+                <i class="fa-solid fa-plus"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- 手动配置 -->
+          <div class="agent-config-section">
+            <h3 class="section-title">手动配置 Bot ID</h3>
+            <p class="section-desc">如果您已在Coze平台创建智能体，可以手动填入Bot ID</p>
+            
+            <div class="input-group">
+              <label>监督智能体 Bot ID</label>
+              <input type="text" id="input-supervisor-bot-id" placeholder="例如: 7xxxxxxxxxxxxx">
+            </div>
+            
+            <div class="input-group">
+              <label>求助智能体 Bot ID</label>
+              <input type="text" id="input-helper-bot-id" placeholder="例如: 7xxxxxxxxxxxxx">
+            </div>
+            
+            <button class="btn-save-config" onclick="saveAgentConfig()">
+              <i class="fa-solid fa-save"></i>
+              保存配置
+            </button>
+          </div>
+          
+          <!-- API 文档链接 -->
+          <div class="agent-docs-section">
+            <h3 class="section-title">参考文档</h3>
+            <div class="docs-links">
+              <a href="https://docs.coze.cn/developer_guides/create_bot" target="_blank" class="doc-link">
+                <i class="fa-solid fa-book"></i>
+                创建智能体
+              </a>
+              <a href="https://docs.coze.cn/developer_guides/publish_bot" target="_blank" class="doc-link">
+                <i class="fa-solid fa-rocket"></i>
+                发布智能体
+              </a>
+              <a href="https://docs.coze.cn/developer_guides/create_room" target="_blank" class="doc-link">
+                <i class="fa-solid fa-video"></i>
+                实时通话
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
   </div>
   
   <!-- JavaScript -->
+  <script src="js/coze-api.js"></script>
+  <script src="js/coze-realtime.js"></script>
+  <script src="js/coze-agent.js"></script>
+  <script src="js/recite-session.js"></script>
+  <script src="js/dictation-session.js"></script>
+  <script src="js/copywrite-session.js"></script>
   <script src="js/app.js"></script>
+  <script>
+    // ==========================================
+    // AI智能体设置管理
+    // ==========================================
+    
+    // 打开智能体设置弹窗
+    function openAgentSettingsModal() {
+      const modal = document.getElementById('modal-agent-settings');
+      if (modal) {
+        modal.classList.add('active');
+        checkAgentStatus();
+        loadAgentConfig();
+      }
+    }
+    
+    // 关闭智能体设置弹窗
+    function closeAgentSettingsModal() {
+      const modal = document.getElementById('modal-agent-settings');
+      if (modal) {
+        modal.classList.remove('active');
+      }
+    }
+    
+    // 检查智能体状态
+    async function checkAgentStatus() {
+      // 检查监督智能体
+      const supervisorId = CozeAPI?.getBotId?.('supervisor') || '';
+      updateAgentStatus('supervisor', supervisorId ? 'connected' : 'disconnected');
+      
+      // 检查求助智能体
+      const helperId = CozeAPI?.getBotId?.('helper') || '';
+      updateAgentStatus('helper', helperId ? 'connected' : 'disconnected');
+    }
+    
+    // 更新智能体状态显示
+    function updateAgentStatus(type, status) {
+      const card = document.getElementById(`agent-${type}-card`);
+      const statusDot = document.getElementById(`${type}-status-dot`);
+      const statusText = document.getElementById(`${type}-status-text`);
+      const actionBtn = document.getElementById(`btn-create-${type}`);
+      
+      if (status === 'connected') {
+        card?.classList.add('connected');
+        statusDot?.classList.add('active');
+        statusText.textContent = '已连接';
+        statusText.classList.add('connected');
+        statusText.classList.remove('error');
+        if (actionBtn) {
+          actionBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
+          actionBtn.classList.add('connected');
+          actionBtn.disabled = true;
+        }
+      } else if (status === 'error') {
+        card?.classList.remove('connected');
+        statusDot?.classList.remove('active');
+        statusText.textContent = '创建失败';
+        statusText.classList.add('error');
+        statusText.classList.remove('connected');
+        if (actionBtn) {
+          actionBtn.innerHTML = '<i class="fa-solid fa-plus"></i>';
+          actionBtn.classList.remove('connected');
+          actionBtn.disabled = false;
+        }
+      } else {
+        card?.classList.remove('connected');
+        statusDot?.classList.remove('active');
+        statusText.textContent = '未配置';
+        statusText.classList.remove('connected', 'error');
+        if (actionBtn) {
+          actionBtn.innerHTML = '<i class="fa-solid fa-plus"></i>';
+          actionBtn.classList.remove('connected');
+          actionBtn.disabled = false;
+        }
+      }
+    }
+    
+    // 加载已保存的配置
+    function loadAgentConfig() {
+      const supervisorId = CozeAPI?.getBotId?.('supervisor') || '';
+      const helperId = CozeAPI?.getBotId?.('helper') || '';
+      
+      const supervisorInput = document.getElementById('input-supervisor-bot-id');
+      const helperInput = document.getElementById('input-helper-bot-id');
+      
+      if (supervisorInput) supervisorInput.value = supervisorId;
+      if (helperInput) helperInput.value = helperId;
+    }
+    
+    // 保存配置
+    function saveAgentConfig() {
+      const supervisorId = document.getElementById('input-supervisor-bot-id')?.value.trim();
+      const helperId = document.getElementById('input-helper-bot-id')?.value.trim();
+      
+      if (supervisorId) {
+        CozeAPI?.setBotId?.('supervisor', supervisorId);
+        COZE_CONFIG.agents.supervisor.botId = supervisorId;
+      }
+      
+      if (helperId) {
+        CozeAPI?.setBotId?.('helper', helperId);
+        COZE_CONFIG.agents.helper.botId = helperId;
+      }
+      
+      checkAgentStatus();
+      showToast('配置已保存', 'success');
+    }
+    
+    // 创建监督智能体
+    async function createSupervisorBot() {
+      const btn = document.getElementById('btn-create-supervisor');
+      const statusText = document.getElementById('supervisor-status-text');
+      
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+      }
+      if (statusText) statusText.textContent = '创建中...';
+      
+      try {
+        if (typeof CozeAPI !== 'undefined') {
+          const botId = await CozeAPI.createBot('supervisor');
+          if (botId) {
+            await CozeAPI.publishBot(botId);
+            updateAgentStatus('supervisor', 'connected');
+            showToast('监督智能体创建成功！', 'success');
+            return;
+          }
+        }
+        throw new Error('创建失败');
+      } catch (error) {
+        console.error('创建监督智能体失败:', error);
+        updateAgentStatus('supervisor', 'error');
+        showToast('创建失败，请检查API配置', 'error');
+      }
+    }
+    
+    // 创建求助智能体
+    async function createHelperBot() {
+      const btn = document.getElementById('btn-create-helper');
+      const statusText = document.getElementById('helper-status-text');
+      
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+      }
+      if (statusText) statusText.textContent = '创建中...';
+      
+      try {
+        if (typeof CozeAPI !== 'undefined') {
+          const botId = await CozeAPI.createBot('helper');
+          if (botId) {
+            await CozeAPI.publishBot(botId);
+            updateAgentStatus('helper', 'connected');
+            showToast('求助智能体创建成功！', 'success');
+            return;
+          }
+        }
+        throw new Error('创建失败');
+      } catch (error) {
+        console.error('创建求助智能体失败:', error);
+        updateAgentStatus('helper', 'error');
+        showToast('创建失败，请检查API配置', 'error');
+      }
+    }
+    
+    // 绑定智能体设置按钮
+    document.addEventListener('DOMContentLoaded', function() {
+      const agentSettingsBtn = document.getElementById('btn-agent-settings');
+      if (agentSettingsBtn) {
+        agentSettingsBtn.addEventListener('click', function() {
+          closeSidebar();
+          openAgentSettingsModal();
+        });
+      }
+    });
+    
+    // ==========================================
+    // 求助功能
+    // ==========================================
+    
+    // 求助发送处理
+    function handleHelpSend() {
+      const input = document.getElementById('help-input');
+      if (input && input.value.trim()) {
+        CozeAgent.sendHelpMessage(input.value.trim());
+        input.value = '';
+      }
+    }
+    
+    // 快捷求助
+    function sendQuickHelp(message) {
+      CozeAgent.sendHelpMessage(message);
+    }
+    
+    // ==========================================
+    // 语音通话功能
+    // ==========================================
+    
+    // 切换语音通话
+    async function toggleVoiceCall() {
+      const btn = document.getElementById('btn-voice-call');
+      
+      if (CozeRealtime.isActive()) {
+        // 结束通话
+        await CozeRealtime.endCall();
+        btn?.classList.remove('active', 'calling');
+        btn.innerHTML = '<i class="fa-solid fa-phone"></i><span class="call-status"></span>';
+      } else {
+        // 开始通话
+        try {
+          btn?.classList.add('calling');
+          btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span class="call-status">连接中...</span>';
+          
+          await CozeRealtime.startCall('helper');
+          
+          btn?.classList.remove('calling');
+          btn?.classList.add('active');
+          btn.innerHTML = '<i class="fa-solid fa-phone-slash"></i><span class="call-status">通话中</span>';
+          
+          // 设置回调
+          CozeRealtime.on('onMessage', function(msg) {
+            // 添加消息到聊天区域
+            const chatMessages = document.getElementById('help-chat-messages');
+            if (chatMessages && msg.role === 'assistant') {
+              chatMessages.innerHTML += `
+                <div class="chat-message assistant">
+                  <div class="message-avatar">
+                    <img src="assets/images/xiaoying-avatar.png" alt="小影老师">
+                  </div>
+                  <div class="message-content">
+                    <p>${msg.content}</p>
+                  </div>
+                </div>
+              `;
+              chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+          });
+          
+          CozeRealtime.on('onTranscript', function(text) {
+            // 显示用户说的话
+            const chatMessages = document.getElementById('help-chat-messages');
+            if (chatMessages) {
+              chatMessages.innerHTML += `
+                <div class="chat-message user">
+                  <div class="message-content">
+                    <p>${text}</p>
+                  </div>
+                </div>
+              `;
+              chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+          });
+          
+        } catch (error) {
+          btn?.classList.remove('calling', 'active');
+          btn.innerHTML = '<i class="fa-solid fa-phone"></i><span class="call-status"></span>';
+        }
+      }
+    }
+    
+    // 页面卸载时结束通话
+    window.addEventListener('beforeunload', function() {
+      if (CozeRealtime.isActive()) {
+        CozeRealtime.endCall();
+      }
+    });
+  </script>
 </body>
 </html>
+
 

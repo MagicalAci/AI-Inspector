@@ -198,7 +198,132 @@
      ========================================== */
   --header-height: 88px;
   --tab-bar-height: 83px;
-  --safe-area-top: env(safe-area-inset-top, 47px);
-  --safe-area-bottom: env(safe-area-inset-bottom, 34px);
   --content-max-width: 428px;
+  
+  /* ==========================================
+     安全区适配（iOS & Android）
+     ========================================== */
+  /* iOS 刘海屏、底部Home Indicator */
+  --safe-area-top: env(safe-area-inset-top, 24px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 24px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  
+  /* Android 状态栏、导航栏、刘海屏 */
+  --android-status-bar: 24px;
+  --android-nav-bar: 48px;
+  --android-notch-height: 32px;
+  
+  /* ==========================================
+     引导页专用色彩 - 统一绿色主题
+     ========================================== */
+  --onboarding-bg: linear-gradient(180deg, #E8FAF5 0%, #F0F9F6 50%, #F8F5F0 100%);
+  --onboarding-card: rgba(255, 255, 255, 0.92);
+  --onboarding-accent: #34D399;
+  --onboarding-text: #1A1A2E;
+  --onboarding-text-secondary: #6B7280;
+  
+  /* 引导页按钮 */
+  --btn-onboarding: linear-gradient(135deg, #1F2937 0%, #374151 100%);
+  --btn-onboarding-secondary: rgba(255, 255, 255, 0.9);
+  
+  /* ==========================================
+     响应式断点
+     ========================================== */
+  --breakpoint-xs: 320px;
+  --breakpoint-sm: 375px;
+  --breakpoint-md: 414px;
+  --breakpoint-lg: 480px;
+  
+  /* ==========================================
+     边框系统
+     ========================================== */
+  --border-width-thin: 1px;
+  --border-width-normal: 2px;
+  --border-color: rgba(0, 0, 0, 0.08);
+  --border-color-light: rgba(0, 0, 0, 0.04);
+}
+
+/* ==========================================
+   响应式适配
+   ========================================== */
+
+/* 小屏设备 (iPhone SE 等) */
+@media screen and (max-width: 374px) {
+  :root {
+    --font-size-xs: 10px;
+    --font-size-sm: 12px;
+    --font-size-base: 14px;
+    --font-size-md: 16px;
+    --font-size-lg: 18px;
+    --font-size-xl: 22px;
+    --font-size-2xl: 26px;
+    
+    --spacing-md: 12px;
+    --spacing-lg: 20px;
+    --spacing-xl: 28px;
+  }
+}
+
+/* 中等屏幕 (标准 iPhone) */
+@media screen and (min-width: 375px) and (max-width: 413px) {
+  :root {
+    --content-max-width: 375px;
+  }
+}
+
+/* 大屏设备 (iPhone Plus/Pro Max) */
+@media screen and (min-width: 414px) {
+  :root {
+    --content-max-width: 414px;
+  }
+}
+
+/* 平板设备 */
+@media screen and (min-width: 768px) {
+  :root {
+    --content-max-width: 480px;
+    --font-size-base: 16px;
+    --font-size-md: 18px;
+  }
+}
+
+/* 暗色模式 - 已禁用，保持亮色界面 */
+/* 如需启用暗色模式，取消下方注释即可 */
+/*
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: #1A1A2E;
+    --color-card: #252537;
+    --color-white: #252537;
+    --text-primary: #F9FAFB;
+    --text-secondary: #9CA3AF;
+    --text-tertiary: #6B7280;
+    --glass-bg: rgba(37, 37, 55, 0.85);
+    --glass-bg-light: rgba(37, 37, 55, 0.6);
+    --color-separator: rgba(255, 255, 255, 0.1);
+    --border-color: rgba(255, 255, 255, 0.1);
+    --border-color-light: rgba(255, 255, 255, 0.05);
+    --gradient-home: linear-gradient(180deg, #1A1A2E 0%, #252537 100%);
+    --gradient-video: linear-gradient(180deg, #252537 0%, #1A1A2E 100%);
+    --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.2), 0 8px 32px rgba(0, 0, 0, 0.15);
+  }
+}
+*/
+
+/* 减少动画偏好 */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-fast: 0s;
+    --transition-normal: 0s;
+    --transition-slow: 0s;
+    --transition-spring: 0s;
+    --transition-bounce: 0s;
+  }
+  
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

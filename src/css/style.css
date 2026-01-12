@@ -618,6 +618,8 @@ body {
 /* ==========================================
    响应式适配
    ========================================== */
+
+/* 小屏幕手机 (iPhone SE等) */
 @media (max-width: 375px) {
   :root {
     --font-size-base: 14px;
@@ -632,6 +634,71 @@ body {
   
   .task-card {
     flex: 0 0 250px;
+  }
+}
+
+/* 中等屏幕手机 */
+@media (min-width: 376px) and (max-width: 428px) {
+  :root {
+    --font-size-base: 15px;
+  }
+}
+
+/* 大屏幕手机 (iPhone Plus/Max, Android大屏) */
+@media (min-width: 429px) {
+  :root {
+    --font-size-base: 16px;
+    --spacing-lg: 28px;
+  }
+  
+  .avatar-video-wrapper {
+    width: 200px;
+    height: 200px;
+  }
+}
+
+/* 短屏幕适配（如SE2、部分Android） */
+@media (max-height: 700px) {
+  :root {
+    --spacing-lg: 16px;
+    --spacing-xl: 24px;
+  }
+  
+  .avatar-video-wrapper {
+    width: 140px;
+    height: 140px;
+  }
+}
+
+/* ==========================================
+   Android 特定适配
+   ========================================== */
+
+/* Android 设备检测 - 无safe-area支持时使用固定值 */
+@supports not (padding: env(safe-area-inset-bottom)) {
+  :root {
+    --safe-area-top: var(--android-status-bar);
+    --safe-area-bottom: var(--android-nav-bar);
+  }
+}
+
+/* 高DPI屏幕优化 */
+@media (-webkit-min-device-pixel-ratio: 3), (min-resolution: 3dppx) {
+  .avatar-video-wrapper video {
+    image-rendering: -webkit-optimize-contrast;
+  }
+}
+
+/* 横屏模式 */
+@media (orientation: landscape) and (max-height: 500px) {
+  .onboarding-container {
+    overflow-y: auto;
+  }
+  
+  .intro-slide {
+    height: auto;
+    min-height: 100vh;
+    padding: var(--spacing-lg);
   }
 }
 

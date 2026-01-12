@@ -1157,8 +1157,8 @@ const CozeRealtime = (() => {
   // ==========================================
   
   /**
-   * 开启监督模式 - 快速启动版
-   * 立即显示UI，异步加载功能
+   * 开启监督模式 - 等待一切就绪后统一开始
+   * 像老师进教室一样，先准备好再和学生打招呼
    */
   async function startSupervisor() {
     if (channels.supervisor.isActive) {
@@ -1166,26 +1166,50 @@ const CozeRealtime = (() => {
       return;
     }
 
-    console.log('[CozeRealtime] 快速启动监督模式...');
+    console.log('[CozeRealtime] 小影老师正在进入教室...');
     
-    // 立即标记为活跃
-    channels.supervisor.isActive = true;
-    channels.supervisor.room = { id: 'session_' + Date.now(), isMock: true };
+    // 显示Loading - 老师正在来的路上
+    LoadingManager.show('小影老师正在进入教室...', { timeout: 15000 });
     
-    // 初始化音频播放器
-    initAudioPlayer();
-    
-    // 立即显示默认开场白（不等待API）
-    const defaultGreeting = '小特工，开始学习啦！加油！💪';
-    showAIBubble(defaultGreeting, 'high');
-    
-    console.log('[CozeRealtime] Supervisor mode started');
-    
-    // 异步请求权限（不阻塞UI）
-    requestPermissions().then(hasPermission => {
+    try {
+      // 1. 先请求权限（摄像头+麦克风）
+      LoadingManager.update('正在打开摄像头...');
+      const hasPermission = await requestPermissions();
+      if (!hasPermission) {
+        console.warn('[CozeRealtime] 权限请求失败');
+      }
+      
+      // 2. 初始化音频播放器
+      initAudioPlayer();
+      
+      // 3. 创建监督房间
+      LoadingManager.update('小影老师准备好了...');
+      channels.supervisor.room = await createRoom(
+        CONFIG.BOTS.supervisor,
+        'supervisor_' + Date.now()
+      );
+      channels.supervisor.isActive = true;
+      
+      // 4. 恢复上下文
+      const savedContext = loadContext('supervisor');
+      if (savedContext) {
+        channels.supervisor.conversationId = savedContext.conversationId;
+      }
+      
+      // 5. 一切就绪，隐藏Loading
+      LoadingManager.hide();
+      
+      // 6. 老师进教室了！播放欢迎语
+      const welcomeGreeting = '小特工，小影老师来啦！我们开始学习吧！💪';
+      showAIBubble(welcomeGreeting, 'high');
+      
+      // 播放欢迎语音（等待播放开始）
+      speak(welcomeGreeting, 'high').catch(e => {
+        console.warn('[CozeRealtime] 欢迎语播放失败:', e);
+      });
+      
+      // 7. 启动视频截图监控（每3秒一次）
       if (hasPermission) {
-        console.log('[CozeRealtime] 权限已获取');
-        // 启动视频截图（每3秒一次，降低频率减少性能影响）
         channels.supervisor.screenshotInterval = setInterval(() => {
           if (channels.supervisor.isActive && !channels.supervisor.paused) {
             const screenshot = captureVideoScreenshot();
@@ -1195,25 +1219,25 @@ const CozeRealtime = (() => {
           }
         }, 3000);
       }
-    }).catch(e => console.warn('[CozeRealtime] 权限请求失败:', e));
-    
-    // 异步播放开场白（不阻塞UI）
-    speak(defaultGreeting, 'high').catch(e => {
-      console.warn('[CozeRealtime] 开场白播放失败:', e);
-    });
-    
-    // 恢复上下文
-    const savedContext = loadContext('supervisor');
-    if (savedContext) {
-      channels.supervisor.conversationId = savedContext.conversationId;
+      
+      // 8. 启动定期检查（每5分钟）
+      channels.supervisor.checkInterval = setInterval(async () => {
+        if (channels.supervisor.isActive && !channels.supervisor.paused) {
+          await supervisorCheck();
+        }
+      }, 5 * 60 * 1000);
+      
+      console.log('[CozeRealtime] ✅ 小影老师已进入教室');
+      
+    } catch (error) {
+      console.error('[CozeRealtime] 进入教室失败:', error);
+      LoadingManager.hide();
+      
+      // 即使失败也显示一个友好提示
+      showAIBubble('小影老师来晚了，不过没关系，我们开始学习吧！', 'high');
+      channels.supervisor.isActive = true;
+      channels.supervisor.room = { id: 'fallback_' + Date.now(), isMock: true };
     }
-    
-    // 启动定期检查（每5分钟）
-    channels.supervisor.checkInterval = setInterval(async () => {
-      if (channels.supervisor.isActive && !channels.supervisor.paused) {
-        await supervisorCheck();
-      }
-    }, 5 * 60 * 1000);
 
       // 启动视频截图（1秒一次）
       channels.supervisor.screenshotInterval = setInterval(() => {
@@ -1322,35 +1346,52 @@ const CozeRealtime = (() => {
       return;
     }
 
+    console.log('[CozeRealtime] 小影老师来帮忙了...');
+    
     // 显示Loading
-    LoadingManager.show('小影老师来帮你啦...');
+    LoadingManager.show('小影老师马上来帮你...', { timeout: 10000 });
     
     try {
-      console.log('[CozeRealtime] Starting helper mode...');
-      
-      // 立即标记为活跃
+      // 1. 创建房间
+      channels.helper.room = await createRoom(
+        CONFIG.BOTS.helper,
+        'helper_' + Date.now()
+      );
       channels.helper.isActive = true;
-      channels.helper.room = { id: 'helper_session_' + Date.now(), isMock: true };
       
-      // 显示UI
-      showHelperUI();
-      
-      // 隐藏Loading
-      LoadingManager.hide();
-      
-      // 立即显示欢迎语
-      const welcomeMsg = '你好呀，有什么问题？😊';
-      showAIBubble(welcomeMsg, 'high');
-      StatusIndicator.update('listening', '正在听...');
-      
-      // 恢复上下文
+      // 2. 恢复上下文
       const savedContext = loadContext('helper');
       if (savedContext) {
         channels.helper.conversationId = savedContext.conversationId;
       }
       
-      // 异步播放欢迎语（不阻塞）
+      // 3. 一切就绪，隐藏Loading
+      LoadingManager.hide();
+      
+      // 4. 显示UI
+      showHelperUI();
+      
+      // 5. 播放欢迎语
+      const welcomeMsg = '你好呀，有什么问题？小影老师来帮你啦！😊';
+      showAIBubble(welcomeMsg, 'high');
+      StatusIndicator.update('listening', '正在听...');
+      
+      // 播放欢迎语音
       speak(welcomeMsg, 'high').catch(e => console.warn('[Helper] 欢迎语播放失败:', e));
+      
+    } catch (error) {
+      console.error('[CozeRealtime] Helper启动失败:', error);
+      LoadingManager.hide();
+      
+      // 即使失败也继续
+      channels.helper.isActive = true;
+      channels.helper.room = { id: 'helper_fallback_' + Date.now(), isMock: true };
+      showHelperUI();
+      
+      const fallbackMsg = '小影老师来啦，有什么问题尽管问！';
+      showAIBubble(fallbackMsg, 'high');
+      StatusIndicator.update('listening', '正在听...');
+    }
 
       // 启动语音识别
       startVoiceRecognition('helper');
@@ -1689,13 +1730,6 @@ const CozeRealtime = (() => {
    * 启动任务模式
    * @param {string} type - 任务类型: 'recite' | 'dictation' | 'copywrite'
    * @param {object} options - 配置选项
-   *   - originalText: 原文内容（背诵/默写）
-   *   - wordList: 词表数组（听写）
-   *   - onResult: 结果回调 (json) => {}
-   *   - onHint: 提示回调 (hint) => {}
-   *   - onSpeech: 语音识别回调 (text) => {}
-   *   - autoStartRecognition: 是否自动启动语音识别
-   *   - showLoading: 是否显示Loading（默认true）
    */
   async function startTaskMode(type, options = {}) {
     const taskNames = {
@@ -1703,55 +1737,80 @@ const CozeRealtime = (() => {
       dictation: '听写',
       copywrite: '默写'
     };
+    const taskName = taskNames[type] || type;
     
-    console.log(`[TaskMode] 启动${taskNames[type] || type}模式`);
+    console.log(`[TaskMode] 启动${taskName}模式`);
     
-    // 显示Loading
+    // 显示Loading - 老师准备教材
     if (options.showLoading !== false) {
-      LoadingManager.show(`准备${taskNames[type] || '任务'}模式...`);
+      LoadingManager.show(`小影老师正在准备${taskName}内容...`, { timeout: 10000 });
     }
     
-    if (channels.task.isActive) {
-      console.warn('[TaskMode] 已有任务在运行，先停止');
-      await stopTaskMode(false); // 不恢复监督，因为马上要开始新任务
+    try {
+      if (channels.task.isActive) {
+        console.warn('[TaskMode] 已有任务在运行，先停止');
+        await stopTaskMode(false);
+      }
+      
+      // 暂停监督
+      RoomManager.pauseSupervisor();
+      
+      // 创建任务房间
+      const botId = CONFIG.BOTS[type] || CONFIG.BOTS.helper;
+      channels.task.room = await createRoom(botId, `${type}_` + Date.now());
+      
+      // 初始化任务通道
+      channels.task.isActive = true;
+      channels.task.type = type;
+      channels.task.status = 'ready';
+      channels.task.recognizedText = '';
+      channels.task.originalText = options.originalText || null;
+      channels.task.wordList = options.wordList || null;
+      channels.task.onResult = options.onResult || null;
+      channels.task.onHint = options.onHint || null;
+      channels.task.onSpeech = options.onSpeech || null;
+      
+      // 一切就绪，隐藏Loading
+      LoadingManager.hide();
+      
+      // 更新状态指示器
+      const statusMap = {
+        recite: '背诵模式',
+        dictation: '听写模式',
+        copywrite: '默写模式'
+      };
+      StatusIndicator.update('speaking', statusMap[type]);
+      
+      // 播放任务开始提示
+      const startMessages = {
+        recite: '好的，我们开始背诵吧！准备好了吗？',
+        dictation: '好的，我们开始听写吧！仔细听哦~',
+        copywrite: '好的，我们开始默写吧！认真写哦~'
+      };
+      const startMsg = startMessages[type] || '准备开始！';
+      showAIBubble(startMsg, 'high');
+      speak(startMsg, 'high').catch(e => console.warn('[TaskMode] 开始语播放失败:', e));
+      
+      // 自动启动语音识别
+      if (options.autoStartRecognition && type === 'recite') {
+        startTaskSpeechRecognition();
+      }
+      
+      console.log(`[TaskMode] ✅ ${taskName}模式已就绪`);
+      return true;
+      
+    } catch (error) {
+      console.error(`[TaskMode] ${taskName}模式启动失败:`, error);
+      LoadingManager.hide();
+      
+      // 即使失败也继续
+      channels.task.isActive = true;
+      channels.task.type = type;
+      channels.task.room = { id: `${type}_fallback_` + Date.now(), isMock: true };
+      
+      showAIBubble(`好的，我们开始${taskName}吧！`, 'high');
+      return true;
     }
-    
-    // 暂停监督（降低频率，但保持专注度监测）
-    RoomManager.pauseSupervisor();
-    
-    // 初始化任务通道
-    channels.task.isActive = true;
-    channels.task.type = type;
-    channels.task.status = 'ready';
-    channels.task.recognizedText = '';
-    channels.task.originalText = options.originalText || null;
-    channels.task.wordList = options.wordList || null;
-    channels.task.onResult = options.onResult || null;
-    channels.task.onHint = options.onHint || null;
-    channels.task.onSpeech = options.onSpeech || null;
-    
-    // 更新状态指示器
-    const statusMap = {
-      recite: '背诵模式',
-      dictation: '听写模式',
-      copywrite: '默写模式'
-    };
-    StatusIndicator.update('speaking', statusMap[type]);
-    
-    // 隐藏Loading
-    LoadingManager.hide();
-    
-    // 尝试获取任务专属bot
-    const botId = CONFIG.BOTS[type] || CONFIG.BOTS.helper;
-    
-    // 只有明确要求时才自动启动语音识别
-    if (options.autoStartRecognition && type === 'recite') {
-      startTaskSpeechRecognition();
-    }
-    
-    console.log(`[TaskMode] ${taskNames[type] || type}模式已启动`);
-    
-    return true;
   }
   
   /**

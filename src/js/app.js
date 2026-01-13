@@ -1,5 +1,5 @@
 /**
- * AI督学 - 主应用程序 v5
+ * 盯盯作业 - 主应用程序 v5
  * 新增：新用户引导流程（家教面试签约体验）
  */
 
@@ -7065,8 +7065,8 @@ function showRandomEncouragement() {
 function shareResult() {
   if (navigator.share) {
     navigator.share({
-      title: 'AI督学 - 特工任务完成',
-      text: `我在AI督学完成了今日特工任务，获得了${DOM.completeStats.stars?.textContent || '+50'}特工积分！`,
+      title: '盯盯作业 - 特工任务完成',
+      text: `我在盯盯作业完成了今日特工任务，获得了${DOM.completeStats.stars?.textContent || '+50'}特工积分！`,
       url: window.location.href
     });
   } else {

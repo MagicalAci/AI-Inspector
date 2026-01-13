@@ -17646,3 +17646,11 @@ body.study-mode #supervisor-indicator {
 .result-btn.secondary:hover {
   background: #e2e8f0;
 }
+
+/* 引导页副标题 */
+.slide-subtitle {
+  font-size: 16px;
+  color: #6B7280;
+  margin: 8px 0 16px;
+  font-weight: 500;
+}

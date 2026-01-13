@@ -784,7 +784,7 @@
       <div class="teacher-fullscreen-v4">
           <video 
             id="study-avatar-video" 
-          class="teacher-video-fullscreen" 
+            class="teacher-video-fullscreen" 
             autoplay 
             loop 
             muted 
@@ -792,6 +792,14 @@
           >
             <source src="assets/images/xiaoying-avatar.mp4" type="video/mp4">
           </video>
+          <!-- 虚拟老师占位符（视频不存在时显示） -->
+          <div class="teacher-avatar-placeholder" id="teacher-placeholder">
+            <div class="avatar-circle-large">
+              <i class="fa-solid fa-user-graduate"></i>
+            </div>
+            <div class="avatar-name-large">小影老师</div>
+            <div class="avatar-subtitle">AI督学助手</div>
+          </div>
         <!-- 渐变遮罩 -->
         <div class="video-overlay-gradient"></div>
         </div>
@@ -799,7 +807,7 @@
       <!-- 顶部专注度条 -->
       <div class="focus-bar-v4" id="focus-bar">
         <div class="focus-bar-fill" id="focus-bar-fill" style="width: 100%"></div>
-      </div>
+        </div>
       
       <!-- 顶部状态栏 -->
       <div class="study-top-bar-final">
@@ -810,8 +818,8 @@
           <button class="settings-btn-left" id="btn-supervision-settings">
             <i class="fa-solid fa-sliders"></i>
           </button>
-          </div>
-        
+      </div>
+      
         <!-- 顶部中间：学习时间 -->
         <div class="time-center">
           <span class="time-val-center" id="study-time-v2">00:00</span>
@@ -848,8 +856,8 @@
           <button class="panel-close" id="btn-close-supervision-panel">
             <i class="fa-solid fa-xmark"></i>
           </button>
-        </div>
-        
+      </div>
+      
         <!-- 监督模式切换 -->
         <div class="mode-switcher">
           <span class="mode-label">监督风格</span>
@@ -857,7 +865,7 @@
             <button class="mode-btn active" data-mode="gentle">
               <i class="fa-solid fa-heart"></i>
               温柔
-            </button>
+        </button>
             <button class="mode-btn" data-mode="strict">
               <i class="fa-solid fa-fire"></i>
               严厉
@@ -930,8 +938,8 @@
           
           <!-- 右侧：完成按钮 -->
           <button class="task-complete-btn-v6" id="btn-complete-task">
-            <i class="fa-solid fa-check"></i>
-          </button>
+          <i class="fa-solid fa-check"></i>
+        </button>
       </div>
       
         <!-- 任务切换指示器 -->
@@ -973,7 +981,7 @@
             <button class="recite-upload-btn" id="btn-recite-upload">
               <i class="fa-solid fa-camera"></i>
               <span>拍照上传</span>
-            </button>
+        </button>
           </div>
           
           <!-- 状态2：背诵内容区域（有素材后显示） -->

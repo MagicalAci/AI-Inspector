@@ -778,6 +778,19 @@ function initDOM() {
     // 检查视频源是否可用
     DOM.studyAvatarVideo.addEventListener('loadeddata', () => {
       console.log('Video loaded successfully');
+      // 隐藏占位符，显示视频
+      const placeholder = document.getElementById('teacher-placeholder');
+      if (placeholder) {
+        placeholder.style.display = 'none';
+      }
+    });
+    
+    // 视频可以播放时也隐藏占位符
+    DOM.studyAvatarVideo.addEventListener('canplay', () => {
+      const placeholder = document.getElementById('teacher-placeholder');
+      if (placeholder) {
+        placeholder.style.display = 'none';
+      }
     });
   }
   

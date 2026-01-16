@@ -41,15 +41,25 @@ const INTERVIEW_QUESTIONS = [
 
 // 引导状态
 const OnboardingState = {
-  stage: 'intro', // intro | interview | contract | done
+  stage: 'intro', // intro | wizard | contract | done
   currentSlide: 0,
   currentQuestion: 0,
+  wizardStep: 1, // 家长向导当前步骤 (1-9)
+  totalWizardSteps: 9,
   userData: {
     nickname: '',
     grade: '',
     homeworkTime: '',
     focusLevel: '',
     avatar: '1'
+  },
+  // 家长定制方案数据
+  parentWizardData: {
+    childGrade: '', // 1-9 年级
+    painPoints: [], // distracted | procrastinate | dependent | dictation
+    studyTime: 'evening', // afternoon | evening | flexible
+    studyDuration: 45, // 20-90 分钟
+    services: ['focus'] // focus | dictation | recite | companion
   }
 };
 
@@ -135,6 +145,8 @@ const AppState = {
   tempMaterial: null, // 临时存储的材料图片
   isPaused: false,
   focusScore: 90,
+  // 学习计划
+  learningPlan: null,
   // 休息系统
   isBreaking: false,           // 是否正在休息
   breakTimer: null,            // 休息计时器
@@ -249,6 +261,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.history.replaceState({}, document.title, window.location.pathname);
   }
   
+  // 重置引导流程 (?reset_onboarding=1)
+  if (urlParams.get('reset_onboarding') === '1') {
+    localStorage.removeItem('ai_study_onboarded');
+    localStorage.removeItem('ai_study_learning_plan');
+    localStorage.removeItem('ai_study_wizard_data');
+    console.log('[Init] Onboarding reset via URL parameter');
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+  
   // 初始化 Lucide 图标
   if (typeof lucide !== 'undefined') {
     lucide.createIcons();
@@ -266,9 +287,27 @@ document.addEventListener('DOMContentLoaded', async () => {
   initEventListeners();
   
   // 如果已经重置，直接初始化引导流程
-  if (urlParams.get('reset') === '1') {
+  if (urlParams.get('reset') === '1' || urlParams.get('reset_onboarding') === '1') {
+    // 重置引导状态
+    localStorage.removeItem('ai_study_onboarded');
+    localStorage.removeItem('ai_study_learning_plan');
     initOnboarding();
     return;
+  }
+  
+  // 支持URL参数跳过引导 (?skip_onboarding=1)
+  if (urlParams.get('skip_onboarding') === '1') {
+    localStorage.setItem('ai_study_onboarded', 'true');
+    console.log('Onboarding skipped via URL parameter');
+    // 强制隐藏引导容器
+    const onboarding = document.getElementById('onboarding');
+    if (onboarding) {
+      onboarding.classList.remove('active');
+      onboarding.style.display = 'none';
+    }
+    updateUI();
+    updateUserNameDisplay();
+    return; // 直接返回，不执行后续引导逻辑
   }
   
   // 检查是否需要显示引导流程
@@ -276,7 +315,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (hasOnboarded) {
     // 已完成引导，隐藏引导容器
     const onboarding = document.getElementById('onboarding');
-    if (onboarding) onboarding.classList.remove('active');
+    if (onboarding) {
+      onboarding.classList.remove('active');
+      onboarding.style.display = 'none';
+    }
     updateUI();
     updateUserNameDisplay(); // 更新用户名和问候语
   } else {
@@ -294,6 +336,17 @@ function loadUserData() {
       Object.assign(AppState.user, data);
     } catch (e) {
       console.log('Failed to load user data');
+    }
+  }
+  
+  // 加载学习计划
+  const savedPlan = localStorage.getItem('ai_study_learning_plan');
+  if (savedPlan) {
+    try {
+      AppState.learningPlan = JSON.parse(savedPlan);
+      console.log('[LearningPlan] 已加载学习计划:', AppState.learningPlan);
+    } catch (e) {
+      console.log('Failed to load learning plan');
     }
   }
   
@@ -710,7 +763,9 @@ function initDOM() {
     parent: document.getElementById('page-parent'),
     history: document.getElementById('page-history'),
     achievements: document.getElementById('page-achievements'),
-    settings: document.getElementById('page-settings')
+    settings: document.getElementById('page-settings'),
+    report: document.getElementById('page-report'),
+    'task-cards-showcase': document.getElementById('page-task-cards-showcase')
   };
   
   // 侧边栏
@@ -744,6 +799,11 @@ function initDOM() {
   DOM.taskCountBadge = document.getElementById('task-count-badge');
   DOM.dailyProgressFill = document.getElementById('daily-progress-fill');
   DOM.dailyProgressText = document.getElementById('daily-progress-text');
+  // V4 新增
+  DOM.userDisplayName = document.getElementById('user-display-name');
+  DOM.btnPhotoTask = document.getElementById('btn-photo-task');
+  DOM.btnQuickSetup = document.getElementById('btn-quick-setup');
+  DOM.btnInvite = document.getElementById('btn-invite');
   DOM.dailyMissionDesc = document.getElementById('daily-mission-desc');
   DOM.btnAddTask = document.getElementById('btn-add-task');
   
@@ -837,11 +897,36 @@ function initEventListeners() {
   document.getElementById('btn-open-sidebar')?.addEventListener('click', openSidebar);
   DOM.sidebarOverlay?.addEventListener('click', closeSidebar);
   
+  // 📊 学习报告按钮
+  document.getElementById('btn-open-report')?.addEventListener('click', () => {
+    navigateTo('report');
+    loadDailyReport();
+  });
+  
+  // 🎴 任务卡片设计系统展示页
+  document.getElementById('btn-open-task-cards-showcase')?.addEventListener('click', () => {
+    navigateTo('task-cards-showcase');
+    if (window.TaskCardShowcase) {
+      window.TaskCardShowcase.init();
+    }
+  });
+  
+  // 任务卡片展示页返回按钮
+  document.getElementById('btn-task-cards-back')?.addEventListener('click', () => {
+    navigateTo('settings', 'back');
+  });
+  
   // 虚拟人点击交互
   initAvatarInteraction();
   
   // 主按钮
   DOM.btnMainAction?.addEventListener('click', handleMainAction);
+  
+  // V4 首页按钮
+  DOM.btnPhotoTask?.addEventListener('click', () => navigateTo('photo'));
+  DOM.btnQuickSetup?.addEventListener('click', () => openTaskChoiceModal());
+  DOM.btnInvite?.addEventListener('click', () => showToast('邀请功能即将上线！', 'info'));
+  document.getElementById('btn-add-task-inline')?.addEventListener('click', () => openTaskChoiceModal());
   
   // 添加任务按钮 (V2 浮动按钮)
   DOM.btnAddTask?.addEventListener('click', openTaskChoiceModal);
@@ -857,7 +942,7 @@ function initEventListeners() {
   });
   document.getElementById('choice-quick')?.addEventListener('click', () => {
     closeTaskChoiceModal();
-    navigateTo('quick');
+    openAddTaskModal();
   });
   DOM.modalTaskChoice?.querySelector('.modal-overlay')?.addEventListener('click', closeTaskChoiceModal);
   
@@ -933,6 +1018,7 @@ function initEventListeners() {
   initModeBtns();
   initMaterialUpload();
   initMaterialUploadModal();
+  initControlBarEvents(); // 底部控制栏事件
   initReciteDictationEvents();
   initRecitePanelEventsV5();
   initDictationPanelEventsV5();
@@ -1016,7 +1102,7 @@ function quickStartChallenge() {
   saveUserData();
   
   // 显示提示
-  showToast('🚀 开始30分钟专注挑战！', 'success');
+  showToast('🚀 开始40分钟专注挑战！', 'success');
   
   // 直接进入学习页面
   setTimeout(() => {
@@ -1079,6 +1165,10 @@ function updateUI() {
   if (AppState.user.name) {
     const sidebarName = document.getElementById('sidebar-user-name');
     if (sidebarName) sidebarName.textContent = AppState.user.name;
+    // V4 首页用户名
+    if (DOM.userDisplayName) {
+      DOM.userDisplayName.textContent = AppState.user.name;
+    }
   }
 }
 
@@ -1137,10 +1227,33 @@ function updateDossierUI() {
     DOM.agentBadgeIcon.textContent = level.icon;
   }
   
-  // 统计数据
+  // 连续学习天数
   if (DOM.streakDaysV2) {
-    DOM.streakDaysV2.textContent = AppState.user.streakDays;
+    DOM.streakDaysV2.textContent = AppState.user.streakDays || 0;
   }
+  
+  // 超越排名百分比
+  const beatPercent = calculateBeatPercent();
+  const beatPercentEl = document.getElementById('beat-percent');
+  if (beatPercentEl) {
+    beatPercentEl.textContent = beatPercent > 0 ? `${beatPercent}%` : '--';
+  }
+  
+  // 本周学习时长（分钟）
+  const weeklyStudyTime = calculateWeeklyStudyTime();
+  const weeklyStudyEl = document.getElementById('weekly-study-time');
+  if (weeklyStudyEl) {
+    weeklyStudyEl.textContent = weeklyStudyTime;
+  }
+  
+  // 平均专注度
+  const avgFocus = calculateAvgFocusScore();
+  const avgFocusEl = document.getElementById('avg-focus-score');
+  if (avgFocusEl) {
+    avgFocusEl.textContent = avgFocus > 0 ? avgFocus : '--';
+  }
+  
+  // 完成任务数
   if (DOM.totalMissionsV2) {
     DOM.totalMissionsV2.textContent = AppState.user.totalMissions || 0;
   }
@@ -1155,19 +1268,112 @@ function updateDossierUI() {
   updateMainActionButton();
 }
 
+// 计算超越同学百分比（基于学习时长和连续天数）
+function calculateBeatPercent() {
+  const streakDays = AppState.user.streakDays || 0;
+  const totalMissions = AppState.user.totalMissions || 0;
+  const totalStudyTime = AppState.user.totalStudyTime || 0;
+  
+  // 简单算法：基于连续天数和学习时长计算
+  // 实际应用中应该从服务器获取真实排名
+  if (totalStudyTime === 0 && streakDays === 0) {
+    return 0;
+  }
+  
+  // 模拟排名：学习越多，排名越高
+  let basePercent = 50; // 基础50%
+  basePercent += Math.min(streakDays * 5, 25); // 连续天数最多加25%
+  basePercent += Math.min(totalMissions * 2, 15); // 任务数最多加15%
+  basePercent += Math.min(Math.floor(totalStudyTime / 60), 10); // 学习时长最多加10%
+  
+  return Math.min(basePercent, 99);
+}
+
+// 计算本周学习时长（分钟）
+function calculateWeeklyStudyTime() {
+  // 尝试从 LearningReport 获取真实数据
+  if (typeof LearningReport !== 'undefined' && LearningReport.manager) {
+    try {
+      // 获取本周的学习数据
+      const weeklyData = getWeeklyStudyData();
+      if (weeklyData && weeklyData.totalMinutes > 0) {
+        return weeklyData.totalMinutes;
+      }
+    } catch (e) {
+      console.log('获取本周学习数据失败', e);
+    }
+  }
+  
+  // 回退到简单计算
+  const totalMinutes = Math.floor((AppState.user.totalStudyTime || 0) / 60);
+  // 假设是本周的数据
+  return totalMinutes;
+}
+
+// 计算平均专注度
+function calculateAvgFocusScore() {
+  // 尝试从学习报告获取
+  if (typeof LearningReport !== 'undefined' && LearningReport.manager) {
+    try {
+      const reports = JSON.parse(localStorage.getItem('learning_reports') || '[]');
+      if (reports.length > 0) {
+        const recentReports = reports.slice(-7); // 最近7天
+        const totalFocus = recentReports.reduce((sum, r) => sum + (r.avgFocus || 0), 0);
+        return Math.round(totalFocus / recentReports.length);
+      }
+    } catch (e) {}
+  }
+  
+  // 使用 AppState 中的数据
+  if (AppState.avgFocusRate) {
+    return Math.round(AppState.avgFocusRate);
+  }
+  
+  return 0;
+}
+
+// 获取本周学习数据
+function getWeeklyStudyData() {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - dayOfWeek);
+  startOfWeek.setHours(0, 0, 0, 0);
+  
+  try {
+    const sessions = JSON.parse(localStorage.getItem('study_sessions') || '[]');
+    const weekSessions = sessions.filter(s => new Date(s.date) >= startOfWeek);
+    
+    const totalMinutes = weekSessions.reduce((sum, s) => {
+      return sum + Math.floor((s.duration || 0) / 60);
+    }, 0);
+    
+    return { totalMinutes };
+  } catch (e) {
+    return { totalMinutes: 0 };
+  }
+}
+
 // 更新任务简报
 function updateMissionBriefing() {
-  const subjectIcons = {
-    '语文': '📖', '数学': '🔢', '英语': '🔤',
-    '科学': '🔬', '阅读': '📚', '其他': '✏️',
-    '写作业': '📝', '背诵': '🎤'
-  };
-  
   const modeLabels = {
     'recite': '背诵',
     'dictation': '听写',
     'copywrite': '默写',
     'homework': '作业'
+  };
+  
+  // 获取材料按钮文本
+  const getMaterialButtonText = (task) => {
+    const needsMaterial = task.mode === 'recite' || task.mode === 'dictation' || task.mode === 'copywrite';
+    const hasMaterial = task.material?.uploaded || task.materialUrl;
+    
+    if (!needsMaterial) return null; // 作业类型不显示材料按钮
+    if (hasMaterial) return { text: '查看材料', icon: 'fa-file-lines', action: 'view' };
+    
+    if (task.mode === 'recite') return { text: '上传课文', icon: 'fa-upload', action: 'upload' };
+    if (task.mode === 'dictation') return { text: '上传单词表', icon: 'fa-upload', action: 'upload' };
+    return { text: '上传材料', icon: 'fa-upload', action: 'upload' };
   };
   
   // 过滤已完成的任务和今日挑战任务（挑战任务有独立的卡片显示）
@@ -1192,35 +1398,67 @@ function updateMissionBriefing() {
   }
   
   if (DOM.taskPreviewList) {
-    // 只显示前3个未完成任务
-    const previewTasks = pendingTasks.slice(0, 3);
-    const hasMore = pendingTasks.length > 3;
+    // 构建任务列表（带休息分隔）
+    let html = '';
+    let lastTaskIndex = -1;
     
-    // 渲染任务列表
-    DOM.taskPreviewList.innerHTML = previewTasks.map((task, index) => {
+    pendingTasks.forEach((task, index) => {
       // 找到任务在原数组中的真实索引
       const realIndex = AppState.tasks.indexOf(task);
-      return `
-        <div class="task-preview-item" onclick="startStudyFromTask(${realIndex})">
-          <span class="task-preview-icon">${subjectIcons[task.subject] || '📝'}</span>
-          <div class="task-preview-info">
-            <div class="task-preview-name">${task.name}</div>
-            <div class="task-preview-meta">
-              <span>${task.subject}</span>
-              ${task.mode && task.mode !== 'homework' ? `· ${modeLabels[task.mode]}` : ''}
+      const materialBtn = getMaterialButtonText(task);
+      const modeLabel = modeLabels[task.mode] || '作业';
+      
+      // 每两个任务后添加休息提示（除了最后一个）
+      if (index > 0 && index % 2 === 0 && index < pendingTasks.length) {
+        html += `
+          <div class="task-break-divider">
+            <i class="fa-solid fa-mug-hot"></i>
+            <span>休息5分钟</span>
+          </div>
+        `;
+      }
+      
+      html += `
+        <div class="task-card-figma" data-index="${realIndex}">
+          <div class="task-card-content" onclick="startStudyFromTask(${realIndex})">
+            <div class="task-card-top">
+              <span class="task-card-name">${task.name}</span>
+              ${materialBtn ? `
+                <button class="task-material-btn" onclick="handleMaterialAction(${realIndex}, '${materialBtn.action}'); event.stopPropagation();">
+                  <i class="fa-solid ${materialBtn.icon}"></i>
+                  <span>${materialBtn.text}</span>
+                </button>
+              ` : ''}
+            </div>
+            <div class="task-card-bottom">
+              <div class="task-card-tags">
+                <span class="task-tag mode ${task.mode || 'homework'}">${modeLabel}</span>
+                <span class="task-tag subject">${task.subject || '其他'}</span>
+              </div>
+              <div class="task-card-time">
+                <i class="fa-regular fa-clock"></i>
+                <span>${task.duration}分钟</span>
+              </div>
             </div>
           </div>
-          <div class="task-preview-duration">
-            <i class="fa-regular fa-clock"></i>
-            ${task.duration}分
+          <div class="task-card-actions">
+            <button class="swipe-action-btn edit" onclick="editTask(${realIndex}); event.stopPropagation();">
+              <span>修改</span>
+            </button>
+            <button class="swipe-action-btn delete" onclick="removeTask(${realIndex}); event.stopPropagation();">
+              <span>删除</span>
+            </button>
           </div>
         </div>
       `;
-    }).join('') + (hasMore ? `
-      <div class="task-preview-more">
-        +${pendingTasks.length - 3} 更多任务
-      </div>
-    ` : '');
+      
+      lastTaskIndex = index;
+    });
+    
+    DOM.taskPreviewList.innerHTML = html;
+    
+    // 初始化滑动操作
+    initTaskCardSwipe();
     
     if (DOM.taskCountBadge) {
       DOM.taskCountBadge.textContent = `${pendingTasks.length}项`;
@@ -1268,7 +1506,7 @@ function updateDailyMissionProgress() {
       DOM.dailyProgressText.textContent = `${Math.floor(actualDuration / 60)}/${task.duration}分钟`;
     }
     if (missionDesc) {
-      missionDesc.textContent = '继续30分钟专注学习';
+      missionDesc.textContent = '继续40分钟专注学习！';
     }
     if (missionReward) {
       missionReward.innerHTML = '<span class="reward-value">+50</span><i class="fa-solid fa-coins"></i>';
@@ -1286,7 +1524,7 @@ function updateDailyMissionProgress() {
     if (quickStartHint) quickStartHint.style.display = 'flex';
     
     if (missionDesc) {
-      missionDesc.textContent = '完成30分钟专注学习';
+      missionDesc.textContent = '完成40分钟专注学习！';
     }
     if (missionReward) {
       missionReward.innerHTML = '<span class="reward-value">+50</span><i class="fa-solid fa-coins"></i>';
@@ -1311,15 +1549,159 @@ function updateMainActionButton() {
   }
   
   if (DOM.mainActionText) {
-    DOM.mainActionText.textContent = hasTasks 
-      ? '开始执行任务' 
-      : '设置特工任务';
+    DOM.mainActionText.textContent = '开始学习';
   }
   
   // 添加任务按钮显示
   if (DOM.btnAddTask) {
     DOM.btnAddTask.style.display = hasTasks ? 'flex' : 'none';
   }
+}
+
+// 处理素材指示器点击
+function handleMaterialIndicatorClick(taskId, hasMaterial) {
+  if (hasMaterial) {
+    // 查看素材
+    viewTaskMaterial(taskId);
+  } else {
+    // 打开上传界面
+    openMaterialUploadModal(taskId);
+  }
+}
+
+// 查看任务素材
+function viewTaskMaterial(taskId) {
+  const task = AppState.tasks.find(t => t.id === taskId);
+  if (!task || (!task.material && !task.materialUrl)) {
+    showToast('素材不存在', 'error');
+    return;
+  }
+  
+  // 创建素材预览弹窗
+  const previewHtml = `
+    <div class="material-preview-modal" id="material-preview-modal" onclick="this.remove()">
+      <div class="material-preview-content" onclick="event.stopPropagation()">
+        <div class="material-preview-header">
+          <h3><i class="fa-solid fa-image"></i> 素材预览</h3>
+          <button class="material-preview-close" onclick="document.getElementById('material-preview-modal').remove()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="material-preview-body">
+          <img src="${task.material || task.materialUrl}" alt="任务素材" />
+        </div>
+        <div class="material-preview-footer">
+          <span class="material-task-name">${task.name}</span>
+          <button class="material-change-btn" onclick="openMaterialUploadModal('${task.id}'); document.getElementById('material-preview-modal').remove();">
+            <i class="fa-solid fa-pen"></i> 更换素材
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', previewHtml);
+}
+
+// 打开素材上传弹窗
+function openMaterialUploadModal(taskId) {
+  const task = AppState.tasks.find(t => t.id === taskId);
+  if (!task) {
+    showToast('任务不存在', 'error');
+    return;
+  }
+  
+  // 创建上传弹窗
+  const uploadHtml = `
+    <div class="material-preview-modal" id="material-upload-modal" onclick="this.remove()">
+      <div class="material-preview-content upload-hint" onclick="event.stopPropagation()">
+        <div class="material-preview-header">
+          <h3><i class="fa-solid fa-cloud-arrow-up"></i> 上传素材</h3>
+          <button class="material-preview-close" onclick="document.getElementById('material-upload-modal').remove()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="material-upload-body">
+          <div class="upload-task-info" style="text-align: center; margin-bottom: 16px; padding: 12px; background: #F3F4F6; border-radius: 10px;">
+            <span style="font-size: 13px; color: #6B7280;">为</span>
+            <span style="font-size: 14px; font-weight: 600; color: #1F2937;">"${task.name}"</span>
+            <span style="font-size: 13px; color: #6B7280;">上传素材</span>
+          </div>
+          <div class="upload-area" onclick="triggerMaterialUpload('${task.id}')">
+            <div class="upload-icon">
+              <i class="fa-solid fa-camera"></i>
+            </div>
+            <div class="upload-text">
+              <h4>拍照或上传素材</h4>
+              <p>支持课本、作业本、生词本等图片</p>
+            </div>
+          </div>
+          <div class="upload-options">
+            <button class="upload-option-btn camera" onclick="triggerMaterialCapture('${task.id}')">
+              <i class="fa-solid fa-camera"></i>
+              拍照
+            </button>
+            <button class="upload-option-btn album" onclick="triggerMaterialUpload('${task.id}')">
+              <i class="fa-solid fa-images"></i>
+              相册
+            </button>
+          </div>
+          <div class="upload-tips">
+            <i class="fa-solid fa-lightbulb"></i>
+            <span>小贴士：清晰的图片能帮助 AI 更准确地识别内容</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <input type="file" id="material-file-input" accept="image/*" style="display: none;" 
+           onchange="handleMaterialFileSelect(event, '${task.id}')" />
+    <input type="file" id="material-camera-input" accept="image/*" capture="environment" style="display: none;"
+           onchange="handleMaterialFileSelect(event, '${task.id}')" />
+  `;
+  document.body.insertAdjacentHTML('beforeend', uploadHtml);
+}
+
+// 触发素材上传（相册）
+function triggerMaterialUpload(taskId) {
+  document.getElementById('material-file-input')?.click();
+}
+
+// 触发素材拍照
+function triggerMaterialCapture(taskId) {
+  document.getElementById('material-camera-input')?.click();
+}
+
+// 处理素材文件选择
+function handleMaterialFileSelect(event, taskId) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  // 验证文件类型
+  if (!file.type.startsWith('image/')) {
+    showToast('请选择图片文件', 'error');
+    return;
+  }
+  
+  // 转换为 Base64
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const base64Data = e.target.result;
+    
+    // 更新任务素材
+    const task = AppState.tasks.find(t => t.id === taskId);
+    if (task) {
+      task.material = base64Data;
+      saveUserData();
+      
+      // 关闭弹窗
+      document.getElementById('material-upload-modal')?.remove();
+      
+      // 刷新UI
+      updateBriefingUI();
+      
+      showToast('素材上传成功！', 'success');
+    }
+  };
+  reader.readAsDataURL(file);
 }
 
 // 从任务简报开始学习
@@ -1440,55 +1822,68 @@ function updateTaskListUI() {
     if (DOM.pendingTasks) DOM.pendingTasks.style.display = 'block';
     
     if (DOM.pendingList) {
-      const subjectIcons = {
-        '语文': '📖', '数学': '🔢', '英语': '🔤',
-        '科学': '🔬', '阅读': '📚', '其他': '✏️',
-        '写作业': '📝', '背诵': '🎤'
-      };
-      
       const modeLabels = {
+        'homework': '作业',
         'recite': '背诵',
-        'dictation': '听写'
+        'dictation': '听写',
+        'copywrite': '默写'
       };
       
-      const modeClasses = {
-        'recite': 'recite',
-        'dictation': 'dictation'
+      const getMaterialButtonText = (task) => {
+        const needsMaterial = task.mode === 'recite' || task.mode === 'dictation' || task.mode === 'copywrite';
+        const hasMaterial = task.material?.uploaded;
+        
+        if (!needsMaterial) return { text: '上传材料', icon: 'fa-upload', action: 'upload' };
+        if (hasMaterial) return { text: '查看材料', icon: 'fa-file-lines', action: 'view' };
+        
+        if (task.mode === 'recite') return { text: '上传课文', icon: 'fa-upload', action: 'upload' };
+        if (task.mode === 'dictation') return { text: '上传单词表', icon: 'fa-upload', action: 'upload' };
+        return { text: '上传材料', icon: 'fa-upload', action: 'upload' };
       };
       
       DOM.pendingList.innerHTML = AppState.tasks.map((task, index) => {
-        // 简化：只显示模式标签，点击整行可编辑
-        const needsMaterial = task.mode === 'recite' || task.mode === 'dictation';
-        const hasMaterial = task.material?.uploaded;
+        const materialBtn = getMaterialButtonText(task);
+        const modeLabel = modeLabels[task.mode] || '作业';
         
         return `
-        <div class="pending-item ${task.completed ? 'completed' : ''}" data-index="${index}">
-          <div class="pending-item-drag" onclick="event.stopPropagation()">
-            <i class="fa-solid fa-grip-vertical"></i>
+        <div class="task-card-figma ${task.completed ? 'completed' : ''}" data-index="${index}">
+          <!-- 主内容区（可左滑） -->
+          <div class="task-card-content">
+            <!-- 顶部：任务名称 + 材料按钮 -->
+            <div class="task-card-top">
+              <span class="task-card-name">${task.name}</span>
+              <button class="task-material-btn" onclick="handleMaterialAction(${index}, '${materialBtn.action}'); event.stopPropagation();">
+                <i class="fa-solid ${materialBtn.icon}"></i>
+                <span>${materialBtn.text}</span>
+              </button>
           </div>
-          <span class="pending-item-icon">${subjectIcons[task.subject] || '📝'}</span>
-          <div class="pending-item-info" onclick="editTask(${index})">
-            <div class="pending-item-name">${task.name}</div>
-            <div class="pending-item-meta">
-              <span class="task-duration">${task.duration}分钟</span>
-                ${task.mode && task.mode !== 'homework' ? `<span class="mode-tag-small ${task.mode}">${modeLabels[task.mode]}</span>` : ''}
-                ${needsMaterial && !hasMaterial ? `<span class="upload-tag" onclick="uploadTaskMaterial(${index}); event.stopPropagation();">待上传</span>` : ''}
-                ${needsMaterial && hasMaterial ? '<span class="uploaded-tag">已备好</span>' : ''}
-                ${task.completed ? '<span class="task-status completed">已完成</span>' : ''}
+            <!-- 底部：标签 + 时长 -->
+            <div class="task-card-bottom">
+              <div class="task-card-tags">
+                <span class="task-tag mode">${modeLabel}</span>
+                <span class="task-tag subject">${task.subject || '其他'}</span>
+            </div>
+              <div class="task-card-time">
+                <i class="fa-regular fa-clock"></i>
+                <span>${task.duration}分钟</span>
+          </div>
             </div>
           </div>
-          <div class="pending-item-actions">
-            <button class="action-btn edit" onclick="editTask(${index})" title="编辑">
-              <i class="fa-solid fa-pen"></i>
+          <!-- 滑出的操作按钮 -->
+          <div class="task-card-actions">
+            <button class="swipe-action-btn edit" onclick="editTask(${index}); event.stopPropagation();">
+              <span>修改</span>
             </button>
-            <button class="action-btn delete" onclick="removeTask(${index})" title="删除">
-              <i class="fa-solid fa-trash"></i>
+            <button class="swipe-action-btn delete" onclick="removeTask(${index}); event.stopPropagation();">
+              <span>删除</span>
             </button>
           </div>
         </div>
         `;
       }).join('');
       
+      // 初始化任务卡片滑动
+      initTaskCardSwipe();
       // 初始化任务排序拖拽
       initTaskDragSort();
     }
@@ -1496,6 +1891,79 @@ function updateTaskListUI() {
   
   // 更新任务统计
   updateTaskStats();
+}
+
+// 处理材料操作
+function handleMaterialAction(index, action) {
+  const task = AppState.tasks[index];
+  if (!task) return;
+  
+  if (action === 'view') {
+    viewTaskMaterial(index);
+  } else {
+    uploadTaskMaterial(index);
+  }
+}
+
+// 初始化任务卡片左滑操作
+function initTaskCardSwipe() {
+  const cards = document.querySelectorAll('.task-card-figma');
+  let startX = 0;
+  let currentX = 0;
+  let activeCard = null;
+  
+  cards.forEach(card => {
+    const content = card.querySelector('.task-card-content');
+    
+    content.addEventListener('touchstart', (e) => {
+      startX = e.touches[0].clientX;
+      activeCard = card;
+      content.style.transition = 'none';
+    });
+    
+    content.addEventListener('touchmove', (e) => {
+      if (!activeCard) return;
+      currentX = e.touches[0].clientX;
+      const diff = currentX - startX;
+      
+      // 只允许左滑
+      if (diff < 0) {
+        const translateX = Math.max(diff, -166); // 最大滑动距离
+        content.style.transform = `translateX(${translateX}px)`;
+      }
+    });
+    
+    content.addEventListener('touchend', () => {
+      if (!activeCard) return;
+      const content = activeCard.querySelector('.task-card-content');
+      content.style.transition = 'transform 0.3s ease';
+      
+      const diff = currentX - startX;
+      // 如果滑动超过80px，展开操作按钮
+      if (diff < -80) {
+        content.style.transform = 'translateX(-166px)';
+        activeCard.classList.add('swiped');
+      } else {
+        content.style.transform = 'translateX(0)';
+        activeCard.classList.remove('swiped');
+      }
+      
+      activeCard = null;
+      startX = 0;
+      currentX = 0;
+    });
+  });
+  
+  // 点击其他地方关闭已展开的卡片
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.task-card-figma')) {
+      document.querySelectorAll('.task-card-figma.swiped').forEach(card => {
+        const content = card.querySelector('.task-card-content');
+        content.style.transform = 'translateX(0)';
+        card.classList.remove('swiped');
+      });
+    }
+  });
 }
 
 // 上传任务材料
@@ -1602,20 +2070,13 @@ function updateMainButton() {
   
   if (pendingCount === 0) {
     DOM.btnMainAction.classList.remove('has-tasks');
-    if (DOM.mainActionIcon) {
-      DOM.mainActionIcon.className = 'fa-solid fa-clipboard-list';
-    }
-    if (DOM.mainActionText) {
-      DOM.mainActionText.textContent = '设置特工任务';
-    }
   } else {
     DOM.btnMainAction.classList.add('has-tasks');
-    if (DOM.mainActionIcon) {
-      DOM.mainActionIcon.className = 'fa-solid fa-rocket';
     }
+  
+  // 按钮文字始终显示"开始学习" (Figma设计)
     if (DOM.mainActionText) {
-      DOM.mainActionText.textContent = `开始特工任务 (${pendingCount})`;
-    }
+    DOM.mainActionText.textContent = '开始学习';
   }
 }
 
@@ -1650,6 +2111,14 @@ function editTask(index) {
     
     // 打开编辑弹窗（不重置状态）
     DOM.modalAddTask?.classList.add('active');
+    
+    // 更新弹窗标题为"编辑任务"
+    const modalTitle = DOM.modalAddTask?.querySelector('.modal-header h2');
+    if (modalTitle) modalTitle.textContent = '编辑特工任务';
+    
+    // 更新按钮文字为"保存修改"
+    const saveBtn = document.getElementById('btn-save-task');
+    if (saveBtn) saveBtn.textContent = '保存修改';
     
     // 填充现有数据
     const nameInput = document.getElementById('input-task-name');
@@ -1709,14 +2178,6 @@ function editTask(index) {
         materialGroup.style.display = 'none';
       }
     }
-    
-    // 更新保存按钮文本
-    const saveBtn = document.getElementById('btn-save-task');
-    if (saveBtn) saveBtn.textContent = '保存修改';
-    
-    // 更新弹窗标题
-    const modalTitle = document.querySelector('#modal-add-task .modal-header h2');
-    if (modalTitle) modalTitle.textContent = '编辑任务';
   }
 }
 
@@ -1825,6 +2286,9 @@ function navigateTo(pageId, direction = 'forward') {
   }
   if (pageId === 'parent') {
     loadParentData();
+  }
+  if (pageId === 'report') {
+    loadDailyReport();
   }
   
   // 专注度指示器管理 - 只在学习页面显示
@@ -2982,6 +3446,21 @@ function startStudySession() {
   AppState.taskElapsedTime = 0;
   focusHistory = Array(MAX_FOCUS_POINTS).fill(100);
   
+  // 📊 启动学习报告数据采集
+  if (window.LearningReport && window.LearningReport.collector) {
+    const taskInfo = AppState.tasks.length > 0 ? {
+      taskCount: AppState.tasks.length,
+      firstTask: AppState.tasks[0].name,
+      totalPlannedDuration: AppState.tasks.reduce((sum, t) => sum + (t.duration || 0), 0)
+    } : {};
+    window.LearningReport.collector.startSession(taskInfo).then(sessionId => {
+      console.log('📊 学习报告会话已启动:', sessionId);
+      AppState.reportSessionId = sessionId;
+    }).catch(err => {
+      console.error('学习报告会话启动失败:', err);
+    });
+  }
+  
   if (AppState.tasks.length > 0) {
     const firstTask = AppState.tasks[0];
     
@@ -3072,6 +3551,22 @@ function updateStudyModeUI() {
   }
   
   if (!task) return;
+  
+  // 根据任务模式设置控制栏状态
+  if (task.mode === 'dictation') {
+    // 听写模式：检查是否有材料
+    if (!task.material?.uploaded) {
+      setControlState(ControlState.DICTATION_UPLOAD);
+    } else {
+      setControlState(ControlState.DICTATION_PROGRESS);
+    }
+  } else if (task.mode === 'recite' || task.mode === 'copywrite') {
+    // 背诵/默写模式：使用监督中状态
+    setControlState(ControlState.STUDYING);
+  } else {
+    // 作业/快速模式：使用默认状态
+    setControlState(ControlState.DEFAULT);
+  }
   
   if (task.mode === 'recite' && recitePanel) {
     recitePanel.style.display = 'block';
@@ -5425,6 +5920,9 @@ function doTaskComplete() {
   AppState.currentTask.actualDuration = AppState.taskElapsedTime;
   console.log('[doTaskComplete] 已标记任务完成:', AppState.currentTask.name);
   
+  // 📊 记录任务完成到学习报告
+  recordTaskCompletion(AppState.currentTask);
+  
   // 发放任务奖励（如果是挑战任务）
   if (AppState.currentTask.isChallenge && AppState.currentTask.reward) {
     AppState.user.stars = (AppState.user.stars || 0) + AppState.currentTask.reward;
@@ -5480,6 +5978,16 @@ function finishStudySession() {
   clearInterval(AppState.studyTimer);
   clearInterval(AppState.taskTimer);
   clearInterval(AppState.focusTimer);
+  
+  // 📊 结束学习报告数据采集
+  if (window.LearningReport && window.LearningReport.collector) {
+    window.LearningReport.collector.endSession().then(session => {
+      console.log('📊 学习报告会话已结束:', session);
+      AppState.lastSessionReport = session;
+    }).catch(err => {
+      console.error('学习报告会话结束失败:', err);
+    });
+  }
   
   showAIBubble('全部任务完成！你太厉害了！');
   
@@ -6611,6 +7119,12 @@ function openAddTaskModal() {
   // 重置编辑状态
   AppState.editingTaskIndex = null;
   
+  // 重置弹窗标题和按钮
+  const modalTitle = DOM.modalAddTask?.querySelector('.modal-header h2');
+  if (modalTitle) modalTitle.textContent = '添加特工任务';
+  const saveBtn = document.getElementById('btn-save-task');
+  if (saveBtn) saveBtn.textContent = '添加任务';
+  
   // 重置表单状态
   const nameInput = document.getElementById('input-task-name');
   const materialGroup = document.getElementById('material-upload-group');
@@ -6658,18 +7172,24 @@ function openAddTaskModal() {
   AppState.selectedTaskMode = 'homework';
   AppState.tempMaterial = null;
   
-  // 更新弹窗标题和按钮
-  const modalTitle = document.querySelector('#modal-add-task .modal-header h2');
-  const saveBtn = document.getElementById('btn-save-task');
-  if (modalTitle) modalTitle.textContent = '添加特工任务';
-  if (saveBtn) saveBtn.textContent = '添加任务';
-  
-  DOM.modalAddTask?.classList.add('active');
+  // 显示弹窗
+  if (DOM.modalAddTask) {
+    DOM.modalAddTask.style.display = 'flex';
+    DOM.modalAddTask.offsetHeight; // 触发重排
+    DOM.modalAddTask.classList.add('active');
+  }
 }
 
 function closeAddTaskModal() {
   AppState.tempMaterial = null;
-  DOM.modalAddTask?.classList.remove('active');
+  if (DOM.modalAddTask) {
+    DOM.modalAddTask.classList.remove('active');
+    setTimeout(() => {
+      if (!DOM.modalAddTask.classList.contains('active')) {
+        DOM.modalAddTask.style.display = '';
+      }
+    }, 300);
+  }
 }
 
 function initTimeBtns() {
@@ -6952,6 +7472,8 @@ function saveTask() {
   const subject = activeTypeBtn?.dataset.type || '其他';
   const mode = activeModeBtn?.dataset.mode || 'homework';
   
+  console.log('[saveTask] 任务模式:', mode, '(按钮:', activeModeBtn?.dataset.mode, ')');
+  
   // 检查是否是编辑模式
   if (AppState.editingTaskIndex !== undefined && AppState.editingTaskIndex !== null) {
     // 更新现有任务
@@ -7202,13 +7724,13 @@ function handleIntroNext() {
   if (OnboardingState.currentSlide < 2) {
     goToSlide(OnboardingState.currentSlide + 1);
   } else {
-    startInterview();
+    startEmotionalWizard();
   }
 }
 
 function skipToInterview() {
-  // 跳过介绍页，进入面谈页面
-  startInterview();
+  // 跳过介绍页，进入情绪化向导
+  startEmotionalWizard();
 }
 
 function skipToContract() {
@@ -7216,7 +7738,883 @@ function skipToContract() {
   if (!OnboardingState.userData.nickname) {
     OnboardingState.userData.nickname = '小特工';
   }
+  // 保存设置向导数据
+  saveLearningPlan();
   goToContract();
+}
+
+// ==========================================
+// 情绪化引导向导 V2 - Emotional Wizard
+// ==========================================
+
+function startEmotionalWizard() {
+  console.log('[Onboarding] Starting parent wizard V3...');
+  OnboardingState.stage = 'wizard';
+  OnboardingState.wizardStep = 1;
+  OnboardingState.totalWizardSteps = 10; // V3 has 10 steps
+  
+  // 隐藏介绍页
+  const introSlides = document.getElementById('intro-slides');
+  if (introSlides) {
+    introSlides.classList.remove('active');
+    console.log('[Onboarding] Intro slides hidden');
+  }
+  
+  // 显示家长向导 V3
+  const wizard = document.getElementById('setup-wizard');
+  if (wizard) {
+    wizard.classList.add('active');
+    console.log('[Onboarding] Parent wizard V3 activated');
+    updateWizardUI();
+    bindParentWizardV3Events();
+  } else {
+    console.error('[Onboarding] Wizard element not found!');
+  }
+}
+
+// ==========================================
+// 家长向导 V3 - 情绪化引导 + 即时正向反馈
+// ==========================================
+
+function bindParentWizardV3Events() {
+  console.log('[Onboarding V3] Binding parent wizard V3 events...');
+  
+  // ========== Step 1: 共情开场 -> Step 2 ==========
+  document.getElementById('btn-step1-next')?.addEventListener('click', () => {
+    console.log('[Onboarding V3] Step 1 -> Step 2');
+    OnboardingState.wizardStep = 2;
+    updateWizardUI();
+  });
+  
+  // ========== Step 2: 科学背书 -> Step 3 ==========
+  document.getElementById('btn-step2-next')?.addEventListener('click', () => {
+    console.log('[Onboarding V3] Step 2 -> Step 3');
+    OnboardingState.wizardStep = 3;
+    updateWizardUI();
+  });
+  
+  document.getElementById('btn-step2-back')?.addEventListener('click', () => {
+    OnboardingState.wizardStep = 1;
+    updateWizardUI();
+  });
+  
+  // ========== Step 3: 年级选择 ==========
+  document.querySelectorAll('#grade-picker .grade-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#grade-picker .grade-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      OnboardingState.parentWizardData.childGrade = btn.dataset.value;
+      
+      // 显示即时正向反馈
+      showGradeFeedback(btn.dataset.value, btn.dataset.label);
+      
+      // 选中后自动进入下一步
+      setTimeout(() => {
+        OnboardingState.wizardStep = 4;
+        updateWizardUI();
+      }, 1200);
+    });
+  });
+  
+  document.getElementById('btn-step3-back')?.addEventListener('click', () => {
+    OnboardingState.wizardStep = 2;
+    updateWizardUI();
+  });
+  
+  // ========== Step 4: 痛点选择 ==========
+  document.querySelectorAll('#pain-options .pain-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.classList.toggle('active');
+      const pain = btn.dataset.value;
+      
+      if (btn.classList.contains('active')) {
+        if (!OnboardingState.parentWizardData.painPoints.includes(pain)) {
+          OnboardingState.parentWizardData.painPoints.push(pain);
+        }
+      } else {
+        OnboardingState.parentWizardData.painPoints = OnboardingState.parentWizardData.painPoints.filter(p => p !== pain);
+      }
+      
+      // 更新痛点反馈和按钮状态
+      updatePainFeedback();
+      const nextBtn = document.getElementById('btn-step4-next');
+      if (nextBtn) {
+        nextBtn.disabled = OnboardingState.parentWizardData.painPoints.length === 0;
+      }
+    });
+  });
+  
+  document.getElementById('btn-step4-next')?.addEventListener('click', () => {
+    OnboardingState.wizardStep = 5;
+    updateWizardUI();
+  });
+  
+  document.getElementById('btn-step4-back')?.addEventListener('click', () => {
+    OnboardingState.wizardStep = 3;
+    updateWizardUI();
+  });
+  
+  // ========== Step 5: 时间选择 ==========
+  document.querySelectorAll('#time-options .time-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#time-options .time-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      OnboardingState.parentWizardData.studyTime = btn.dataset.value;
+      updateTimeFeedback(btn.dataset.value);
+    });
+  });
+  
+  // 时长滑块
+  const durationSlider = document.getElementById('duration-slider');
+  const durationValue = document.getElementById('duration-value');
+  
+  if (durationSlider) {
+    durationSlider.addEventListener('input', (e) => {
+      const value = parseInt(e.target.value);
+      OnboardingState.parentWizardData.studyDuration = value;
+      if (durationValue) durationValue.textContent = value;
+    });
+  }
+  
+  document.getElementById('btn-step5-next')?.addEventListener('click', () => {
+    OnboardingState.wizardStep = 6;
+    updateWizardUI();
+  });
+  
+  document.getElementById('btn-step5-back')?.addEventListener('click', () => {
+    OnboardingState.wizardStep = 4;
+    updateWizardUI();
+  });
+  
+  // ========== Step 6: 服务选择 ==========
+  document.querySelectorAll('#service-options .service-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.classList.toggle('active');
+      const service = btn.dataset.value;
+      
+      if (btn.classList.contains('active')) {
+        if (!OnboardingState.parentWizardData.services.includes(service)) {
+          OnboardingState.parentWizardData.services.push(service);
+        }
+      } else {
+        OnboardingState.parentWizardData.services = OnboardingState.parentWizardData.services.filter(s => s !== service);
+      }
+      
+      updateServiceFeedback();
+    });
+  });
+  
+  document.getElementById('btn-step6-next')?.addEventListener('click', () => {
+    OnboardingState.wizardStep = 7;
+    updateWizardUI();
+    startGeneratingAnimationV3();
+  });
+  
+  document.getElementById('btn-step6-back')?.addEventListener('click', () => {
+    OnboardingState.wizardStep = 5;
+    updateWizardUI();
+  });
+  
+  // ========== Step 8: 潜力预测 -> Step 9 ==========
+  document.getElementById('btn-step8-next')?.addEventListener('click', () => {
+    OnboardingState.wizardStep = 9;
+    updateWizardUI();
+    updateResultPageV3();
+  });
+  
+  // ========== Step 9: 结果页 -> Step 10 ==========
+  document.getElementById('btn-step9-next')?.addEventListener('click', () => {
+    OnboardingState.wizardStep = 10;
+    updateWizardUI();
+    triggerConfetti();
+  });
+  
+  // ========== Step 10: 庆祝页 -> 完成 ==========
+  document.getElementById('btn-step10-next')?.addEventListener('click', () => {
+    completeParentOnboarding();
+  });
+}
+
+// 年级选择正向反馈
+function showGradeFeedback(grade, label) {
+  const feedback = document.getElementById('grade-feedback');
+  const title = document.getElementById('grade-feedback-title');
+  const text = document.getElementById('grade-feedback-text');
+  const insight = document.getElementById('grade-feedback-insight');
+  
+  if (!feedback) return;
+  
+  const gradeNum = parseInt(grade);
+  let titleText = '太棒了！';
+  let textContent = '';
+  let insightText = '';
+  
+  if (gradeNum <= 3) {
+    textContent = '低年级正是建立学习习惯的黄金期';
+    insightText = '建议学习时长：20-35分钟/次，小步快跑';
+  } else if (gradeNum <= 6) {
+    textContent = '中高年级培养自主学习能力很关键';
+    insightText = '建议学习时长：35-50分钟/次，逐步提升';
+  } else {
+    titleText = '初中阶段很重要！';
+    textContent = '自律性培养决定未来学业表现';
+    insightText = '建议学习时长：45-60分钟/次，高效专注';
+  }
+  
+  if (title) title.textContent = titleText;
+  if (text) text.textContent = textContent;
+  if (insight) insight.textContent = insightText;
+  
+  feedback.style.display = 'block';
+  feedback.classList.add('show');
+}
+
+// 痛点选择正向反馈
+function updatePainFeedback() {
+  const feedback = document.getElementById('pain-feedback');
+  const text = document.getElementById('pain-feedback-text');
+  const rateFill = document.getElementById('pain-rate-fill');
+  const rateValue = document.getElementById('pain-rate-value');
+  
+  if (!feedback) return;
+  
+  const count = OnboardingState.parentWizardData.painPoints.length;
+  
+  if (count === 0) {
+    feedback.style.display = 'none';
+    return;
+  }
+  
+  // 计算改善率（越多痛点，针对性越强）
+  const baseRate = 75;
+  const bonusPerPain = 5;
+  const rate = Math.min(baseRate + (count * bonusPerPain), 92);
+  
+  if (text) {
+    const feedbacks = {
+      1: '我们会针对这个问题重点优化方案',
+      2: '双重痛点，我们会综合制定解决策略',
+      3: '多方面优化，效果会更明显',
+      4: '全面覆盖！您的方案将非常完整'
+    };
+    text.textContent = feedbacks[Math.min(count, 4)];
+  }
+  
+  if (rateFill) rateFill.style.width = `${rate}%`;
+  if (rateValue) rateValue.textContent = `${rate}%`;
+  
+  feedback.style.display = 'block';
+  feedback.classList.add('show');
+}
+
+// 时间选择正向反馈
+function updateTimeFeedback(timeSlot) {
+  const title = document.getElementById('time-feedback-title');
+  const text = document.getElementById('time-feedback-text');
+  
+  const feedbacks = {
+    'afternoon': {
+      title: '放学后是不错的选择',
+      text: '趁热打铁，学习效率更高，晚上还能放松休息'
+    },
+    'evening': {
+      title: '晚饭后是学习黄金时段',
+      text: '孩子精力充沛，小影老师会准时提醒开始学习'
+    },
+    'flexible': {
+      title: '灵活安排也很好',
+      text: '我们会智能提醒，帮助建立固定的学习节奏'
+    }
+  };
+  
+  const fb = feedbacks[timeSlot] || feedbacks['evening'];
+  if (title) title.textContent = fb.title;
+  if (text) text.textContent = fb.text;
+}
+
+// 服务选择正向反馈
+function updateServiceFeedback() {
+  const text = document.getElementById('service-feedback-text');
+  const count = OnboardingState.parentWizardData.services.length;
+  
+  if (text) {
+    const feedbacks = {
+      0: '请选择至少一项服务',
+      1: '已选择 1 项服务，系统将为您优化配置',
+      2: '已选择 2 项服务，方案更加完善',
+      3: '已选择 3 项服务，全方位提升孩子学习',
+      4: '全部服务已选择，为孩子提供最完整的支持'
+    };
+    text.textContent = feedbacks[Math.min(count, 4)];
+  }
+}
+
+// V3 生成动画
+function startGeneratingAnimationV3() {
+  const progressRing = document.getElementById('gen-progress-ring');
+  const percentText = document.getElementById('gen-percent');
+  const statusText = document.getElementById('gen-status');
+  
+  const steps = document.querySelectorAll('.gen-step-item');
+  const statusMessages = ['分析年龄特点', '匹配解决方案', '配置服务模块', '优化学习计划'];
+  
+  const circumference = 2 * Math.PI * 54;
+  if (progressRing) {
+    progressRing.style.strokeDasharray = circumference;
+    progressRing.style.strokeDashoffset = circumference;
+  }
+  
+  let progress = 0;
+  const interval = setInterval(() => {
+    progress += 2;
+    
+    if (progress >= 100) {
+      progress = 100;
+      clearInterval(interval);
+      
+      // 完成后自动进入下一步
+      setTimeout(() => {
+        OnboardingState.wizardStep = 8;
+        updateWizardUI();
+      }, 600);
+    }
+    
+    // 更新进度环
+    if (progressRing) {
+      const offset = circumference - (progress / 100) * circumference;
+      progressRing.style.strokeDashoffset = offset;
+    }
+    
+    // 更新百分比
+    if (percentText) percentText.textContent = `${Math.round(progress)}%`;
+    
+    // 更新状态消息和步骤图标
+    const stepIndex = Math.floor(progress / 25);
+    if (statusText && stepIndex < statusMessages.length) {
+      statusText.textContent = statusMessages[stepIndex];
+    }
+    
+    // 更新步骤状态
+    steps.forEach((step, i) => {
+      const icon = step.querySelector('i');
+      if (i < stepIndex) {
+        step.classList.add('completed');
+        step.classList.remove('active');
+        if (icon) icon.className = 'fa-solid fa-check-circle';
+      } else if (i === stepIndex) {
+        step.classList.add('active');
+        step.classList.remove('completed');
+        if (icon) icon.className = 'fa-solid fa-spinner fa-spin';
+      } else {
+        step.classList.remove('active', 'completed');
+        if (icon) icon.className = 'fa-solid fa-circle';
+      }
+    });
+  }, 50);
+}
+
+// V3 结果页更新
+function updateResultPageV3() {
+  const data = OnboardingState.parentWizardData;
+  
+  // 更新时间显示
+  const timeMap = {
+    'afternoon': '放学后',
+    'evening': '晚饭后',
+    'flexible': '灵活安排'
+  };
+  const resultTime = document.getElementById('result-time');
+  if (resultTime) resultTime.textContent = timeMap[data.studyTime] || '晚饭后';
+  
+  // 更新时长显示
+  const resultDuration = document.getElementById('result-duration');
+  if (resultDuration) resultDuration.textContent = `${data.studyDuration}分钟`;
+  
+  // 更新服务标签
+  const serviceLabels = {
+    'focus': { icon: 'fa-bullseye', label: '专注监督' },
+    'dictation': { icon: 'fa-volume-high', label: '智能听写' },
+    'recite': { icon: 'fa-microphone', label: '背诵检查' },
+    'companion': { icon: 'fa-video', label: '视频伴读' }
+  };
+  
+  const resultServices = document.getElementById('result-services');
+  if (resultServices && data.services.length > 0) {
+    resultServices.innerHTML = data.services.map(s => {
+      const svc = serviceLabels[s];
+      return svc ? `<span class="result-tag"><i class="fa-solid ${svc.icon}"></i> ${svc.label}</span>` : '';
+    }).join('');
+  }
+}
+
+// 保留旧函数作为兼容
+function bindParentWizardEvents() {
+  bindParentWizardV3Events();
+}
+
+// 更新结果页内容 (兼容旧版)
+function updateResultPage() {
+  updateResultPageV3();
+}
+
+// 家长向导生成动画 (兼容旧版)
+function startParentGeneratingAnimation() {
+  startGeneratingAnimationV3();
+}
+
+// 完成家长引导
+function completeParentOnboarding() {
+  const data = OnboardingState.parentWizardData;
+  
+  // 转换为 AppState 格式
+  AppState.learningPlan = {
+    timeSlot: data.studyTime,
+    duration: data.studyDuration,
+    subjects: ['语文', '数学'], // 默认科目
+    features: data.services,
+    childGrade: data.childGrade,
+    painPoints: data.painPoints
+  };
+  
+  saveLearningPlan();
+  
+  // 标记完成
+  localStorage.setItem('ai_study_onboarded', 'true');
+  AppState.onboarded = true;
+  
+  // 设置默认昵称
+  if (!OnboardingState.userData.nickname) {
+    OnboardingState.userData.nickname = '小特工';
+  }
+  
+  // 跳转到首页
+  navigateTo('home');
+  showWelcomeToast();
+}
+
+function handleWizardNext() {
+  if (OnboardingState.wizardStep < OnboardingState.totalWizardSteps) {
+    OnboardingState.wizardStep++;
+    updateWizardUI();
+    
+    // 特殊步骤处理
+    if (OnboardingState.wizardStep === 6) {
+      // 进入生成页面，开始动画
+      startParentGeneratingAnimation();
+    }
+  }
+}
+
+function handleWizardBack() {
+  if (OnboardingState.wizardStep > 1) {
+    OnboardingState.wizardStep--;
+    updateWizardUI();
+  } else {
+    // 返回介绍页
+    OnboardingState.stage = 'intro';
+    document.getElementById('setup-wizard')?.classList.remove('active');
+    document.getElementById('intro-slides')?.classList.add('active');
+  }
+}
+
+function updateWizardUI() {
+  const steps = document.querySelectorAll('.wizard-step');
+  steps.forEach((step, index) => {
+    if (index + 1 === OnboardingState.wizardStep) {
+      step.classList.add('active');
+    } else {
+      step.classList.remove('active');
+    }
+  });
+  
+  // 更新进度图标
+  updateWizardProgress();
+}
+
+function updateWizardProgress() {
+  const icons = document.querySelectorAll('.progress-icon');
+  const lines = document.querySelectorAll('.progress-line');
+  
+  icons.forEach((icon, index) => {
+    icon.classList.remove('active', 'completed');
+    if (index + 1 === OnboardingState.wizardStep) {
+      icon.classList.add('active');
+    } else if (index + 1 < OnboardingState.wizardStep) {
+      icon.classList.add('completed');
+    }
+  });
+  
+  lines.forEach((line, index) => {
+    line.classList.remove('active', 'completed');
+    if (index + 1 < OnboardingState.wizardStep) {
+      line.classList.add('completed');
+    } else if (index + 1 === OnboardingState.wizardStep) {
+      line.classList.add('active');
+    }
+  });
+}
+
+function startGeneratingAnimation() {
+  const progressRing = document.getElementById('progress-ring');
+  const progressPercent = document.getElementById('progress-percent');
+  const generatingStatus = document.getElementById('generating-status');
+  
+  const statusMessages = [
+    '正在分析学习习惯...',
+    '匹配最佳学习策略...',
+    '计算专注力提升空间...',
+    '生成个性化方案...',
+    '方案生成完成！'
+  ];
+  
+  let progress = 0;
+  const totalDuration = 3000; // 3秒
+  const interval = 50;
+  const increment = 100 / (totalDuration / interval);
+  
+  const animation = setInterval(() => {
+    progress += increment;
+    if (progress >= 100) {
+      progress = 100;
+      clearInterval(animation);
+      
+      // 自动进入下一步 (潜力分析页)
+      setTimeout(() => {
+        OnboardingState.wizardStep = 6;
+        updateWizardUI();
+      }, 500);
+    }
+    
+    // 更新进度环
+    if (progressRing) {
+      const offset = 283 - (283 * progress / 100);
+      progressRing.style.strokeDashoffset = offset;
+    }
+    
+    // 更新百分比
+    if (progressPercent) {
+      progressPercent.textContent = Math.round(progress) + '%';
+    }
+    
+    // 更新状态消息
+    if (generatingStatus) {
+      const messageIndex = Math.min(Math.floor(progress / 20), statusMessages.length - 1);
+      generatingStatus.textContent = statusMessages[messageIndex];
+    }
+  }, interval);
+}
+
+function completeOnboarding() {
+  // 调用新的家长引导完成函数
+  completeParentOnboarding();
+}
+
+function saveWizardData() {
+  const data = OnboardingState.parentWizardData;
+  
+  // 转换为 AppState 格式
+  AppState.learningPlan = {
+    timeSlot: data.studyTime,
+    duration: data.studyDuration,
+    subjects: ['语文', '数学'], // 默认科目
+    features: data.services,
+    childGrade: data.childGrade,
+    painPoints: data.painPoints
+  };
+  
+  // 保存到 localStorage
+  localStorage.setItem('ai_study_wizard_data', JSON.stringify(data));
+  localStorage.setItem('ai_study_learning_plan', JSON.stringify(AppState.learningPlan));
+}
+
+function showWelcomeToast() {
+  const toast = document.createElement('div');
+  toast.className = 'welcome-toast';
+  toast.innerHTML = `
+    <span class="toast-emoji">🎉</span>
+    <span class="toast-text">欢迎加入盯盯作业！让我们一起成长！</span>
+  `;
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #F97316, #FB923C);
+    color: white;
+    padding: 16px 24px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 15px;
+    box-shadow: 0 8px 24px rgba(249, 115, 22, 0.3);
+    z-index: 9999;
+    animation: toastSlideUp 0.4s ease-out;
+  `;
+  
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.animation = 'toastSlideDown 0.3s ease-in forwards';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+function triggerConfetti() {
+  const container = document.getElementById('confetti-container');
+  if (!container) return;
+  
+  const colors = ['#F97316', '#FCD34D', '#10B981', '#3B82F6', '#EC4899', '#8B5CF6'];
+  const shapes = ['circle', 'square', 'triangle'];
+  
+  for (let i = 0; i < 50; i++) {
+    const confetti = document.createElement('div');
+    confetti.className = 'confetti';
+    
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const shape = shapes[Math.floor(Math.random() * shapes.length)];
+    const left = Math.random() * 100;
+    const delay = Math.random() * 2;
+    const size = 8 + Math.random() * 8;
+    
+    let borderRadius = '50%';
+    if (shape === 'square') borderRadius = '2px';
+    if (shape === 'triangle') borderRadius = '0';
+    
+    confetti.style.cssText = `
+      position: absolute;
+      left: ${left}%;
+      top: -20px;
+      width: ${size}px;
+      height: ${size}px;
+      background: ${color};
+      border-radius: ${borderRadius};
+      animation: confettiFall 3s ease-out ${delay}s forwards;
+      ${shape === 'triangle' ? 'clip-path: polygon(50% 0%, 0% 100%, 100% 100%);' : ''}
+    `;
+    
+    container.appendChild(confetti);
+    
+    // 清理
+    setTimeout(() => confetti.remove(), 5000 + delay * 1000);
+  }
+}
+
+/**
+ * 初始化设置向导
+ */
+function initSetupWizard() {
+  SetupWizardState.currentStep = 1;
+  updateSetupWizardUI();
+  bindSetupWizardEvents();
+}
+
+/**
+ * 绑定设置向导事件
+ */
+function bindSetupWizardEvents() {
+  // 学习时间选择
+  document.querySelectorAll('#study-time-options .option-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('#study-time-options .option-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      SetupWizardState.data.studyTime = card.dataset.value;
+    });
+  });
+
+  // 时长选择
+  document.querySelectorAll('#duration-options .duration-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#duration-options .duration-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      SetupWizardState.data.duration = parseInt(chip.dataset.value);
+    });
+  });
+
+  // 科目选择（多选）
+  document.querySelectorAll('#subject-options .subject-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      chip.classList.toggle('active');
+      updateSelectedSubjects();
+    });
+  });
+
+  // 特殊功能选择（多选）
+  document.querySelectorAll('#feature-options .feature-card').forEach(card => {
+    card.addEventListener('click', () => {
+      card.classList.toggle('active');
+      updateSelectedFeatures();
+    });
+  });
+
+  // 目标选择（单选）
+  document.querySelectorAll('#goal-options .goal-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('#goal-options .goal-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      SetupWizardState.data.goal = card.dataset.value;
+      updatePlanPreview();
+    });
+  });
+
+  // 导航按钮
+  document.getElementById('btn-setup-next')?.addEventListener('click', handleSetupNext);
+  document.getElementById('btn-setup-back')?.addEventListener('click', handleSetupBack);
+}
+
+/**
+ * 更新选中的科目
+ */
+function updateSelectedSubjects() {
+  const subjects = [];
+  document.querySelectorAll('#subject-options .subject-chip.active').forEach(chip => {
+    subjects.push(chip.dataset.value);
+  });
+  SetupWizardState.data.subjects = subjects;
+}
+
+/**
+ * 更新选中的特殊功能
+ */
+function updateSelectedFeatures() {
+  const features = [];
+  document.querySelectorAll('#feature-options .feature-card.active').forEach(card => {
+    features.push(card.dataset.value);
+  });
+  SetupWizardState.data.features = features;
+}
+
+/**
+ * 处理下一步
+ */
+function handleSetupNext() {
+  if (SetupWizardState.currentStep < SetupWizardState.totalSteps) {
+    SetupWizardState.currentStep++;
+    updateSetupWizardUI();
+    
+    // 最后一步时更新预览
+    if (SetupWizardState.currentStep === 4) {
+      updatePlanPreview();
+    }
+  } else {
+    // 完成设置，进入契约页
+    OnboardingState.userData.nickname = '小特工';
+    saveLearningPlan();
+    goToContract();
+  }
+}
+
+/**
+ * 处理上一步
+ */
+function handleSetupBack() {
+  if (SetupWizardState.currentStep > 1) {
+    SetupWizardState.currentStep--;
+    updateSetupWizardUI();
+  }
+}
+
+/**
+ * 更新设置向导UI
+ */
+function updateSetupWizardUI() {
+  const step = SetupWizardState.currentStep;
+  
+  // 更新进度条
+  const progressFill = document.getElementById('setup-progress-fill');
+  const progressText = document.getElementById('setup-progress-text');
+  if (progressFill) {
+    progressFill.style.width = `${(step / SetupWizardState.totalSteps) * 100}%`;
+  }
+  if (progressText) {
+    progressText.textContent = `${step}/${SetupWizardState.totalSteps}`;
+  }
+
+  // 更新步骤显示
+  document.querySelectorAll('.setup-step').forEach((stepEl, index) => {
+    stepEl.classList.toggle('active', index + 1 === step);
+  });
+
+  // 更新返回按钮可见性
+  const backBtn = document.getElementById('btn-setup-back');
+  if (backBtn) {
+    backBtn.style.visibility = step === 1 ? 'hidden' : 'visible';
+  }
+
+  // 更新下一步按钮文字
+  const nextBtn = document.getElementById('btn-setup-next');
+  if (nextBtn) {
+    if (step === SetupWizardState.totalSteps) {
+      nextBtn.innerHTML = '<span>完成设置</span><i class="fa-solid fa-check"></i>';
+      nextBtn.classList.add('btn-complete');
+    } else {
+      nextBtn.innerHTML = '<span>下一步</span><i class="fa-solid fa-chevron-right"></i>';
+      nextBtn.classList.remove('btn-complete');
+    }
+  }
+}
+
+/**
+ * 更新计划预览
+ */
+function updatePlanPreview() {
+  const data = SetupWizardState.data;
+  
+  // 时间预览
+  const timeMap = {
+    'afternoon': '放学后',
+    'evening': '晚饭后',
+    'weekend': '周末白天'
+  };
+  const previewTime = document.getElementById('preview-time');
+  if (previewTime) {
+    previewTime.textContent = `${timeMap[data.studyTime] || '晚饭后'} · ${data.duration}分钟/次`;
+  }
+
+  // 科目预览
+  const subjectMap = {
+    'chinese': '语文',
+    'math': '数学',
+    'english': '英语',
+    'science': '科学',
+    'history': '历史',
+    'other': '其他'
+  };
+  const previewSubjects = document.getElementById('preview-subjects');
+  if (previewSubjects) {
+    const subjectNames = data.subjects.map(s => subjectMap[s] || s);
+    previewSubjects.textContent = subjectNames.length > 0 ? subjectNames.join('、') : '未选择';
+  }
+
+  // 功能预览
+  const featureMap = {
+    'recite': '背诵检查',
+    'dictation': '听写辅导',
+    'copywrite': '默写练习',
+    'focus': '专注监督'
+  };
+  const previewFeatures = document.getElementById('preview-features');
+  if (previewFeatures) {
+    const featureNames = data.features.map(f => featureMap[f] || f);
+    previewFeatures.textContent = featureNames.length > 0 ? featureNames.join('、') : '未选择';
+  }
+}
+
+/**
+ * 保存学习计划到本地存储
+ */
+function saveLearningPlan() {
+  const plan = {
+    ...SetupWizardState.data,
+    createdAt: new Date().toISOString()
+  };
+  localStorage.setItem('ai_study_learning_plan', JSON.stringify(plan));
+  
+  // 同步到AppState
+  AppState.learningPlan = plan;
+  
+  console.log('[LearningPlan] 学习计划已保存:', plan);
 }
 
 // 更新进度指示器
@@ -7241,21 +8639,39 @@ function updateProgressIndicator(step) {
 }
 
 function startInterview() {
-  OnboardingState.stage = 'interview';
+  // 改为进入设置向导
+  startSetupWizard();
+}
+
+/**
+ * 学习计划设置向导
+ */
+const SetupWizardState = {
+  currentStep: 1,
+  totalSteps: 4,
+  data: {
+    studyTime: 'evening',
+    duration: 45,
+    subjects: ['chinese', 'math'],
+    features: ['focus'],
+    goal: 'efficiency'
+  }
+};
+
+function startSetupWizard() {
+  OnboardingState.stage = 'setup';
   
-  // 切换显示
+  // 隐藏介绍页
   document.getElementById('intro-slides')?.classList.remove('active');
-  const interviewSection = document.getElementById('interview-section');
-  if (interviewSection) {
-    interviewSection.classList.add('active');
+  
+  // 显示设置向导
+  const wizard = document.getElementById('setup-wizard');
+  if (wizard) {
+    wizard.classList.add('active');
   }
   
-  // 清空对话区域
-  const chat = document.getElementById('interview-chat');
-  if (chat) chat.innerHTML = '';
-  
-  // 开始对话
-  OnboardingState.currentQuestion = 0;
+  // 初始化向导
+  initSetupWizard();
   setTimeout(() => showNextQuestion(), 600);
 }
 
@@ -7593,7 +9009,8 @@ function goToContract() {
   // 更新进度指示器
   updateProgressIndicator(3);
   
-  // 隐藏面谈和介绍页
+  // 隐藏设置向导、面谈和介绍页
+  document.getElementById('setup-wizard')?.classList.remove('active');
   document.getElementById('interview-section')?.classList.remove('active');
   document.getElementById('intro-slides')?.classList.remove('active');
   
@@ -7972,7 +9389,7 @@ function signContract() {
   }, 1800);
 }
 
-function completeOnboarding() {
+function completeOnboardingLegacy() {
   // 保存用户数据
   const nickname = OnboardingState.userData.nickname || '小特工';
   AppState.user.name = nickname;
@@ -8487,30 +9904,34 @@ function completeCurrentTaskV4() {
   const task = AppState.currentTask;
   const mode = task.mode || 'homework';
   
-  // 检查作业类任务是否已完成审核
-  if (mode === 'recite' || mode === 'dictation' || mode === 'copywrite') {
-    const hasResult = checkTaskHasResult(mode);
+  console.log('[completeCurrentTaskV4] 当前任务:', task.name, '模式:', mode);
+  
+  // 检查是否需要作业上传审核
+  // quick模式（快速挑战）不需要审核，其他所有模式都需要上传作业照片
+  const needsHomeworkUpload = mode !== 'quick';
+  
+  console.log('[completeCurrentTaskV4] 需要作业上传审核:', needsHomeworkUpload);
+  
+  if (needsHomeworkUpload) {
+    // 检查是否已完成作业审核
+    const hasHomeworkReview = task.homeworkReviewed === true;
     
-    if (!hasResult) {
-      // 弹出作业上传弹窗，引导用户完成作业
-      console.log('[completeCurrentTaskV4] 作业未审核，弹出上传弹窗');
-      showAIBubble('小特工，请先完成作业再点击完成哦~ 📝', 'high');
+    console.log('[completeCurrentTaskV4] 已有审核结果:', hasHomeworkReview);
+    
+    if (!hasHomeworkReview) {
+      // 切换到提交作业状态
+      console.log('[completeCurrentTaskV4] 作业未审核，切换到提交作业状态');
+      setControlState(ControlState.SUBMIT);
+      showAIBubble('小特工，拍照上传你的作业，检查后我们进入下一个任务 📸', 'high');
       
-      // 根据不同模式打开对应的上传/提交方式
-      if (mode === 'recite') {
-        // 背诵模式：如果没有材料，先上传；如果有材料，提示开始背诵
-        if (!task.material?.uploaded) {
-          showMaterialUploadModal(task);
-        } else {
-          showToast('请先完成背诵并提交审核', 'warning');
+      // 高亮拍作业按钮
+      setTimeout(() => {
+        const submitBtn = document.getElementById('btn-submit-homework');
+        if (submitBtn) {
+          submitBtn.classList.add('pulse-highlight');
+          setTimeout(() => submitBtn.classList.remove('pulse-highlight'), 2000);
         }
-      } else if (mode === 'dictation') {
-        // 听写模式：打开拍照提交
-        openDictationCamera();
-      } else if (mode === 'copywrite') {
-        // 默写模式：打开拍照提交
-        openCopywriteCamera();
-      }
+      }, 100);
       return;
     }
     
@@ -8535,6 +9956,9 @@ function completeCurrentTaskV4() {
  */
 function checkTaskHasResult(mode) {
   switch (mode) {
+    case 'homework':
+      // 检查当前任务是否已通过作业审核
+      return AppState.currentTask?.homeworkReviewed === true;
     case 'recite':
       return currentReciteSession && currentReciteSession.result !== null;
     case 'dictation':
@@ -8543,6 +9967,596 @@ function checkTaskHasResult(mode) {
       return currentCopywriteSession && currentCopywriteSession.result !== null;
     default:
       return true; // 非作业任务默认允许完成
+  }
+}
+
+// ==========================================
+// 作业提交审核 - 底部按钮交互版
+// ==========================================
+
+// 临时存储作业图片
+let homeworkImageData = null;
+
+// 控制栏状态
+const ControlState = {
+  DEFAULT: 'default',              // 学习中（问问题）
+  SUBMIT: 'submit',                // 提交作业（点击完成后）
+  CHECKING: 'checking',            // 检查中
+  COMPLETE: 'complete',            // 检查完成
+  ERROR_RETAKE: 'error-retake',    // 检查有误 - 需重新拍照
+  DICTATION_UPLOAD: 'dictation-upload',     // 听写上传
+  DICTATION_PROGRESS: 'dictation-progress', // 听写进行中
+  DICTATION_ERROR: 'dictation-error',       // 听写检查有误
+  STUDYING: 'studying'             // 监督中 - 正在做作业
+};
+
+let currentControlState = ControlState.DEFAULT;
+
+/**
+ * 切换控制栏状态
+ */
+function setControlState(state) {
+  currentControlState = state;
+  
+  // 所有控制组ID
+  const controlGroups = [
+    'control-group-default',
+    'control-group-submit',
+    'control-group-checking',
+    'control-group-complete',
+    'control-group-dictation-upload',
+    'control-group-dictation-progress',
+    'control-group-error-retake',
+    'control-group-dictation-error',
+    'control-group-studying'
+  ];
+  
+  // 隐藏所有控制组
+  controlGroups.forEach(id => {
+    document.getElementById(id)?.style.setProperty('display', 'none');
+  });
+  
+  // 显示对应的控制组
+  const stateToGroupMap = {
+    [ControlState.DEFAULT]: 'control-group-default',
+    [ControlState.SUBMIT]: 'control-group-submit',
+    [ControlState.CHECKING]: 'control-group-checking',
+    [ControlState.COMPLETE]: 'control-group-complete',
+    [ControlState.ERROR_RETAKE]: 'control-group-error-retake',
+    [ControlState.DICTATION_UPLOAD]: 'control-group-dictation-upload',
+    [ControlState.DICTATION_PROGRESS]: 'control-group-dictation-progress',
+    [ControlState.DICTATION_ERROR]: 'control-group-dictation-error',
+    [ControlState.STUDYING]: 'control-group-studying'
+  };
+  
+  const groupId = stateToGroupMap[state];
+  if (groupId) {
+    document.getElementById(groupId)?.style.setProperty('display', 'flex');
+  }
+  
+  console.log('[setControlState] 切换到状态:', state);
+}
+
+/**
+ * 初始化底部控制栏事件
+ */
+function initControlBarEvents() {
+  // === 默认学习状态按钮 ===
+  // 拍问题按钮
+  document.getElementById('btn-ask-question')?.addEventListener('click', () => {
+    console.log('[btn-ask-question] 点击拍问题');
+    showAIBubble('好的，拍下你的问题，我来帮你解答~ 📸', 'high');
+    // 可以触发拍照或其他交互
+    triggerHomeworkCamera();
+  });
+  
+  // 结束提问按钮
+  document.getElementById('btn-end-question')?.addEventListener('click', () => {
+    console.log('[btn-end-question] 点击结束提问');
+    showAIBubble('好的，继续专心做作业吧！加油~ 💪', 'medium');
+  });
+  
+  // === 提交作业状态按钮 ===
+  // 拍作业按钮
+  document.getElementById('btn-submit-homework')?.addEventListener('click', () => {
+    console.log('[btn-submit-homework] 点击拍作业');
+    triggerHomeworkCamera();
+  });
+  
+  // 作业拍照输入
+  document.getElementById('homework-camera-input')?.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleHomeworkPhoto(file);
+    }
+  });
+  
+  // 休息按钮（提交状态）
+  document.getElementById('btn-take-break')?.addEventListener('click', () => {
+    showAIBubble('好的，休息一下吧，2分钟后叫你哦~ ☕', 'medium');
+    showToast('休息2分钟', 'info');
+  });
+  
+  // === 检查完成状态按钮 ===
+  // 休息按钮
+  document.getElementById('btn-rest-after')?.addEventListener('click', () => {
+    showAIBubble('好的，休息一下，马上开始下一个任务~ ☕', 'medium');
+    showToast('休息2分钟', 'info');
+    // 可以设置定时器自动进入下一个任务
+  });
+  
+  // 立刻开始按钮
+  document.getElementById('btn-start-next')?.addEventListener('click', () => {
+    console.log('[btn-start-next] 点击立刻开始');
+    // 完成当前任务，进入下一个
+    finalizeTaskCompletion();
+  });
+  
+  // === 听写相关按钮 ===
+  document.getElementById('btn-upload-dictation')?.addEventListener('click', () => {
+    console.log('[btn-upload-dictation] 点击拍听写清单');
+    triggerHomeworkCamera();
+  });
+  
+  document.getElementById('btn-dictation-slower')?.addEventListener('click', () => {
+    showAIBubble('好的，我会慢一点读~ 🐢', 'medium');
+  });
+  
+  document.getElementById('btn-dictation-faster')?.addEventListener('click', () => {
+    showAIBubble('好的，加快速度~ 🚀', 'medium');
+  });
+  
+  // === 检查有误状态按钮 ===
+  // 反转摄像头（错误状态）
+  document.getElementById('btn-camera-toggle-err')?.addEventListener('click', () => {
+    console.log('[btn-camera-toggle-err] 反转摄像头');
+    toggleCamera();
+  });
+  
+  // 重新拍照按钮
+  document.getElementById('btn-retake-photo')?.addEventListener('click', () => {
+    console.log('[btn-retake-photo] 点击重新拍照');
+    showAIBubble('好的，我们再来拍一次，这次要全部写完哦~ 📸', 'high');
+    triggerHomeworkCamera();
+  });
+  
+  // 开始下一个按钮（跳过当前）
+  document.getElementById('btn-skip-to-next')?.addEventListener('click', () => {
+    console.log('[btn-skip-to-next] 点击开始下一个');
+    showAIBubble('没关系，我们先开始下一个任务吧！💪', 'medium');
+    // 跳过当前任务，进入下一个
+    skipToNextTask();
+  });
+  
+  // === 听写检查有误状态按钮 ===
+  document.getElementById('btn-review-words')?.addEventListener('click', () => {
+    console.log('[btn-review-words] 点击我背一下');
+    showAIBubble('好的，先背一背这些词，背好了再来听写~ 📖', 'medium');
+    // 可以显示需要背诵的词汇
+  });
+  
+  document.getElementById('btn-restart-dictation')?.addEventListener('click', () => {
+    console.log('[btn-restart-dictation] 点击立刻开始');
+    showAIBubble('准备好了吗？我们重新开始听写~ ✏️', 'high');
+    // 重新开始听写
+    setControlState(ControlState.DICTATION_PROGRESS);
+  });
+  
+  // === 监督中状态按钮 ===
+  document.getElementById('btn-camera-toggle-study')?.addEventListener('click', () => {
+    console.log('[btn-camera-toggle-study] 反转摄像头');
+    toggleCamera();
+  });
+  
+  document.getElementById('btn-raise-hand')?.addEventListener('click', () => {
+    console.log('[btn-raise-hand] 点击举手提问');
+    showAIBubble('有问题吗？拍下来，我来帮你解答~ 📸', 'high');
+    // 切换到提问模式
+    setControlState(ControlState.DEFAULT);
+  });
+  
+  console.log('[initControlBarEvents] 底部控制栏事件已初始化');
+}
+
+/**
+ * 触发作业拍照
+ */
+function triggerHomeworkCamera() {
+  const input = document.getElementById('homework-camera-input');
+  if (input) {
+    input.value = ''; // 清除之前的选择
+    input.click();
+  }
+}
+
+/**
+ * 处理拍摄的作业照片
+ */
+async function handleHomeworkPhoto(file) {
+  if (!file || !file.type.startsWith('image/')) {
+    showToast('请选择图片文件', 'error');
+    return;
+  }
+  
+  // 读取图片
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    homeworkImageData = e.target.result;
+    
+    // 显示AI气泡：正在检查
+    showAIBubble('好的，让我来检查下咱们的作业完成情况~ 📝', 'high');
+    
+    // 切换到检查中状态
+    setControlState(ControlState.CHECKING);
+    
+    // 更新任务卡片显示
+    updateTaskCardForChecking();
+    
+    // 执行AI审核
+    try {
+      const result = await simulateAIReview(homeworkImageData);
+      
+      // 审核完成
+      handleReviewResult(result);
+      
+    } catch (error) {
+      console.error('[handleHomeworkPhoto] 审核失败:', error);
+      showAIBubble('哎呀，检查出了点问题，再试一次吧~ 😅', 'medium');
+      setControlState(ControlState.DEFAULT);
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+/**
+ * 更新任务卡片为检查状态
+ */
+function updateTaskCardForChecking() {
+  const taskLabel = document.getElementById('task-mode-icon');
+  const taskName = document.getElementById('current-task-name-v2');
+  
+  if (taskLabel) taskLabel.textContent = '🔍';
+  if (taskName) taskName.textContent = '检查中...';
+}
+
+/**
+ * 处理审核结果
+ */
+function handleReviewResult(result) {
+  if (result.passed) {
+    // 审核通过
+    showAIBubble(`小特工，${result.feedback} 我们要不要休息2min，再开始下一任务呀~ 🌟`, 'high');
+    
+    // 标记任务已审核
+    if (AppState.currentTask) {
+      AppState.currentTask.homeworkReviewed = true;
+      AppState.currentTask.homeworkImage = homeworkImageData;
+      AppState.currentTask.reviewResult = result;
+    }
+    
+    // 更新任务卡片
+    const taskLabel = document.getElementById('task-mode-icon');
+    const taskName = document.getElementById('current-task-name-v2');
+    if (taskLabel) taskLabel.textContent = '✅';
+    if (taskName) taskName.textContent = '作业完成！';
+    
+    // 切换到完成状态
+    setControlState(ControlState.COMPLETE);
+    
+  } else {
+    // 审核未通过
+    showAIBubble(`${result.feedback} 重新拍照或者先开始下一个任务？ 💪`, 'medium');
+    
+    // 更新任务卡片显示错误状态
+    const taskLabel = document.getElementById('task-mode-icon');
+    const taskName = document.getElementById('current-task-name-v2');
+    if (taskLabel) taskLabel.textContent = '❌';
+    if (taskName) taskName.textContent = '需要修改';
+    
+    // 切换到错误重拍状态
+    setControlState(ControlState.ERROR_RETAKE);
+  }
+}
+
+/**
+ * 恢复任务卡片显示
+ */
+function restoreTaskCard() {
+  const task = AppState.currentTask;
+  if (!task) return;
+  
+  const taskLabel = document.getElementById('task-mode-icon');
+  const taskName = document.getElementById('current-task-name-v2');
+  
+  // 根据任务模式设置图标
+  const modeIcons = {
+    'homework': '📚',
+    'recite': '📖',
+    'dictation': '✏️',
+    'copywrite': '📝',
+    'quick': '⚡'
+  };
+  
+  if (taskLabel) taskLabel.textContent = modeIcons[task.mode] || '📚';
+  if (taskName) taskName.textContent = task.name;
+}
+
+/**
+ * 跳过当前任务，进入下一个
+ */
+function skipToNextTask() {
+  console.log('[skipToNextTask] 跳过当前任务');
+  
+  // 标记当前任务为跳过（不完成）
+  if (AppState.currentTask) {
+    AppState.currentTask.skipped = true;
+    AppState.currentTask.skipReason = 'homework_incomplete';
+  }
+  
+  // 移动到下一个任务
+  const pendingTasks = AppState.tasks.filter(t => !t.completed && !t.skipped);
+  
+  if (pendingTasks.length > 1) {
+    // 还有其他任务
+    AppState.currentTaskIndex++;
+    
+    // 重置控制栏
+    setControlState(ControlState.DEFAULT);
+    
+    // 恢复任务卡片
+    restoreTaskCard();
+    
+    // 更新UI
+    updateTaskCardUI();
+    
+    showToast('已跳过，开始下一个任务', 'info');
+  } else {
+    // 没有其他任务了
+    showAIBubble('今天的任务都完成啦！休息一下吧~ 🎉', 'high');
+    
+    // 结束学习
+    setTimeout(() => {
+      navigateTo('home');
+    }, 2000);
+  }
+}
+
+/**
+ * 完成任务并进入下一个
+ */
+function finalizeTaskCompletion() {
+  // 执行任务完成逻辑
+  handleTaskComplete();
+  
+  // 重置控制栏回学习模式
+  setControlState(ControlState.DEFAULT);
+  
+  // 恢复任务卡片
+  restoreTaskCard();
+}
+
+/**
+ * 打开作业提交弹窗（保留兼容性）
+ */
+function openHomeworkSubmitModal(task) {
+  console.log('[openHomeworkSubmitModal] 触发拍作业');
+  // 直接触发拍照，不再使用弹窗
+  triggerHomeworkCamera();
+}
+
+/**
+ * 关闭作业提交弹窗
+ */
+function closeHomeworkSubmitModal() {
+  const modal = document.getElementById('modal-homework-submit');
+  if (modal) {
+    modal.classList.remove('active');
+    setTimeout(() => {
+      if (!modal.classList.contains('active')) {
+        modal.style.display = '';
+      }
+    }, 300);
+  }
+  homeworkImageData = null;
+}
+
+/**
+ * 初始化作业提交弹窗事件
+ */
+function initHomeworkSubmitModal() {
+  const uploadArea = document.getElementById('homework-upload-area');
+  const fileInput = document.getElementById('homework-file-input');
+  const retakeBtn = document.getElementById('btn-homework-retake');
+  const cancelBtn = document.getElementById('btn-homework-cancel');
+  const submitBtn = document.getElementById('btn-homework-submit');
+  const closeBtn = document.getElementById('modal-homework-close');
+  const overlay = document.querySelector('#modal-homework-submit .modal-overlay');
+  
+  // 点击上传区域
+  uploadArea?.addEventListener('click', () => {
+    fileInput?.click();
+  });
+  
+  // 文件选择
+  fileInput?.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleHomeworkFileSelect(file);
+    }
+  });
+  
+  // 重拍
+  retakeBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    fileInput.value = '';
+    fileInput?.click();
+  });
+  
+  // 取消
+  cancelBtn?.addEventListener('click', closeHomeworkSubmitModal);
+  closeBtn?.addEventListener('click', closeHomeworkSubmitModal);
+  overlay?.addEventListener('click', closeHomeworkSubmitModal);
+  
+  // 提交审核
+  submitBtn?.addEventListener('click', submitHomeworkForReview);
+}
+
+/**
+ * 处理作业图片选择
+ */
+function handleHomeworkFileSelect(file) {
+  if (!file || !file.type.startsWith('image/')) {
+    showToast('请选择图片文件', 'error');
+    return;
+  }
+  
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    homeworkImageData = e.target.result;
+    
+    // 显示预览
+    const uploadPlaceholder = document.getElementById('homework-upload-placeholder');
+    const uploadPreview = document.getElementById('homework-upload-preview');
+    const previewImg = document.getElementById('homework-preview-img');
+    const submitBtn = document.getElementById('btn-homework-submit');
+    
+    if (uploadPlaceholder) uploadPlaceholder.style.display = 'none';
+    if (uploadPreview) uploadPreview.style.display = 'block';
+    if (previewImg) previewImg.src = homeworkImageData;
+    if (submitBtn) submitBtn.disabled = false;
+  };
+  reader.readAsDataURL(file);
+}
+
+/**
+ * 提交作业审核
+ */
+async function submitHomeworkForReview() {
+  if (!homeworkImageData) {
+    showToast('请先拍照上传作业', 'warning');
+    return;
+  }
+  
+  const submitBtn = document.getElementById('btn-homework-submit');
+  const reviewStatus = document.getElementById('ai-review-status');
+  const reviewLoading = document.getElementById('review-loading');
+  const reviewResult = document.getElementById('review-result');
+  
+  // 显示审核中状态
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 审核中...';
+    submitBtn.classList.add('reviewing');
+  }
+  if (reviewStatus) reviewStatus.style.display = 'block';
+  if (reviewLoading) reviewLoading.style.display = 'flex';
+  if (reviewResult) reviewResult.style.display = 'none';
+  
+  try {
+    // 模拟AI审核（实际项目中调用AI接口）
+    const result = await simulateAIReview(homeworkImageData);
+    
+    // 隐藏加载，显示结果
+    if (reviewLoading) reviewLoading.style.display = 'none';
+    if (reviewResult) reviewResult.style.display = 'flex';
+    
+    const reviewIcon = document.getElementById('review-icon');
+    const reviewTitle = document.getElementById('review-title');
+    const reviewFeedback = document.getElementById('review-feedback');
+    const reviewMessage = document.querySelector('.review-message');
+    
+    if (result.passed) {
+      // 审核通过
+      if (reviewIcon) reviewIcon.classList.remove('failed');
+      if (reviewIcon) reviewIcon.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+      if (reviewTitle) reviewTitle.textContent = result.title || '作业完成得很棒！';
+      if (reviewFeedback) reviewFeedback.textContent = result.feedback || '继续保持这种学习态度！';
+      if (reviewMessage) reviewMessage.classList.remove('failed');
+      
+      // 标记任务已审核通过
+      if (AppState.currentTask) {
+        AppState.currentTask.homeworkReviewed = true;
+        AppState.currentTask.homeworkImage = homeworkImageData;
+        AppState.currentTask.reviewResult = result;
+      }
+      
+      // 更新按钮状态
+      if (submitBtn) {
+        submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> 完成任务';
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('reviewing');
+        submitBtn.onclick = () => {
+          closeHomeworkSubmitModal();
+          // 延迟执行完成任务，让弹窗先关闭
+          setTimeout(() => {
+            completeCurrentTaskV4();
+          }, 300);
+        };
+      }
+      
+      showAIBubble('作业完成得真棒！继续加油！ 🌟', 'high');
+      
+    } else {
+      // 审核未通过
+      if (reviewIcon) reviewIcon.classList.add('failed');
+      if (reviewIcon) reviewIcon.innerHTML = '<i class="fa-solid fa-circle-xmark"></i>';
+      if (reviewTitle) reviewTitle.textContent = result.title || '需要再检查一下';
+      if (reviewFeedback) reviewFeedback.textContent = result.feedback || '再仔细检查一下哦~';
+      if (reviewMessage) reviewMessage.classList.add('failed');
+      
+      // 允许重新拍照
+      if (submitBtn) {
+        submitBtn.innerHTML = '<i class="fa-solid fa-camera-rotate"></i> 重新拍照';
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('reviewing');
+        submitBtn.onclick = () => {
+          document.getElementById('homework-file-input')?.click();
+        };
+      }
+      
+      showAIBubble('再检查一下作业哦，你可以的！ 💪', 'medium');
+    }
+    
+  } catch (error) {
+    console.error('[submitHomeworkForReview] 审核失败:', error);
+    showToast('审核失败，请重试', 'error');
+    
+    if (submitBtn) {
+      submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> 重新提交';
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('reviewing');
+    }
+  }
+}
+
+/**
+ * 模拟AI审核作业
+ * 实际项目中应调用后端AI接口
+ */
+async function simulateAIReview(imageData) {
+  // 模拟网络延迟
+  await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
+  
+  // 模拟90%的通过率
+  const passed = Math.random() > 0.1;
+  
+  if (passed) {
+    const feedbacks = [
+      { title: '作业完成得很棒！', feedback: '书写工整，内容完整！' },
+      { title: '非常认真！', feedback: '继续保持这种学习态度！' },
+      { title: '太棒了！', feedback: '作业质量很高，值得表扬！' },
+      { title: '完成度很高！', feedback: '细节处理得很好！' }
+    ];
+    const feedback = feedbacks[Math.floor(Math.random() * feedbacks.length)];
+    return { passed: true, ...feedback };
+  } else {
+    const feedbacks = [
+      { title: '需要补充一下', feedback: '有些地方还需要完善哦~' },
+      { title: '再检查一下', feedback: '仔细看看有没有遗漏的地方' },
+      { title: '差一点点', feedback: '加油，马上就完成了！' }
+    ];
+    const feedback = feedbacks[Math.floor(Math.random() * feedbacks.length)];
+    return { passed: false, ...feedback };
   }
 }
 
@@ -8555,7 +10569,7 @@ function updateCompleteButtonState() {
   if (!task) return;
   
   const mode = task.mode || 'homework';
-  const isHomeworkTask = ['recite', 'dictation', 'copywrite'].includes(mode);
+  const isHomeworkTask = ['homework', 'recite', 'dictation', 'copywrite'].includes(mode);
   
   // 获取所有完成按钮
   const mainCompleteBtn = document.getElementById('btn-complete-task');
@@ -8626,6 +10640,16 @@ function endStudySessionV4() {
     // 停止计时器
     clearInterval(AppState.studyTimer);
     clearInterval(AppState.taskTimer);
+    
+    // 📊 结束学习报告数据采集
+    if (window.LearningReport && window.LearningReport.collector) {
+      window.LearningReport.collector.endSession().then(session => {
+        console.log('📊 学习报告会话已结束:', session);
+        AppState.lastSessionReport = session;
+      }).catch(err => {
+        console.error('学习报告会话结束失败:', err);
+      });
+    }
     
     // 关闭摄像头
     if (cameraStream) {
@@ -9976,7 +12000,10 @@ const FocusMonitor = {
     }
   },
   
-  showDistraction() {
+  showDistraction(type = 'general') {
+    // 📊 记录分心事件到学习报告
+    recordDistractionEvent(type, { timestamp: Date.now() });
+    
     const alert = document.createElement('div');
     alert.className = 'distraction-alert active';
     alert.innerHTML = `
@@ -10695,6 +12722,66 @@ document.addEventListener('DOMContentLoaded', () => {
 
 console.log('✅ 设置页面交互模块已加载');
 
+// ==========================================
+// 开发者工具函数
+// ==========================================
+
+// 从设置页面生成模拟数据
+document.getElementById('btn-generate-mock-data-settings')?.addEventListener('click', async () => {
+  showToast('正在生成模拟数据...', 'info');
+  try {
+    if (window.LearningReport && window.LearningReport.mock) {
+      const count = await window.LearningReport.mock.generateMockData();
+      showToast(`✨ 已生成 ${count} 个学习会话的模拟数据！`, 'success');
+    } else {
+      showToast('学习报告模块未加载', 'error');
+    }
+  } catch (error) {
+    console.error('生成模拟数据失败:', error);
+    showToast('生成失败，请重试', 'error');
+  }
+});
+
+// 从设置页面清除所有数据
+document.getElementById('btn-clear-all-data')?.addEventListener('click', async () => {
+  if (!confirm('确定要清除所有数据吗？此操作不可恢复！')) {
+    return;
+  }
+  
+  showToast('正在清除数据...', 'info');
+  try {
+    // 清除 localStorage
+    localStorage.clear();
+    
+    // 清除 IndexedDB
+    if (window.LearningReport && window.LearningReport.mock) {
+      await window.LearningReport.mock.clearMockData();
+    }
+    
+    // 清除 IndexedDB 数据库
+    const dbNames = ['DingDingHomework', 'ai_study_buddy'];
+    for (const name of dbNames) {
+      try {
+        await new Promise((resolve, reject) => {
+          const req = indexedDB.deleteDatabase(name);
+          req.onsuccess = resolve;
+          req.onerror = reject;
+        });
+      } catch (e) {
+        console.warn(`删除数据库 ${name} 失败:`, e);
+      }
+    }
+    
+    showToast('✅ 所有数据已清除，页面将刷新', 'success');
+    setTimeout(() => {
+      location.reload();
+    }, 1500);
+  } catch (error) {
+    console.error('清除数据失败:', error);
+    showToast('清除失败，请重试', 'error');
+  }
+});
+
 function getTaskIconEmoji(mode) {
   switch(mode) {
     case 'homework': return '📝';
@@ -10740,3 +12827,433 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 console.log('✅ 任务记录功能已加载');
+
+// ==========================================
+// 📊 学习报告页面功能
+// ==========================================
+
+// 当前报告日期
+let reportCurrentDate = new Date();
+
+// 加载每日报告
+async function loadDailyReport(date) {
+  const targetDate = date || new Date().toISOString().split('T')[0];
+  
+  // 更新日期显示
+  updateReportDateDisplay(targetDate);
+  
+  try {
+    if (!window.LearningReport) {
+      console.log('📊 学习报告模块未加载');
+      showReportEmpty();
+      return;
+    }
+    
+    const report = await window.LearningReport.generator.getDailyReport(targetDate);
+    
+    if (!report) {
+      showReportEmpty();
+      return;
+    }
+    
+    // 隐藏空状态，显示报告
+    document.getElementById('report-empty').style.display = 'none';
+    document.getElementById('daily-card').style.display = 'block';
+    
+    // 填充报告数据
+    renderDailyReport(report);
+    
+  } catch (error) {
+    console.error('加载报告失败:', error);
+    showReportEmpty();
+  }
+}
+
+// 更新日期显示
+function updateReportDateDisplay(dateStr) {
+  const today = new Date().toISOString().split('T')[0];
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  
+  const displayEl = document.getElementById('report-current-date');
+  if (!displayEl) return;
+  
+  if (dateStr === today) {
+    displayEl.textContent = '今天';
+  } else if (dateStr === yesterday) {
+    displayEl.textContent = '昨天';
+  } else {
+    const d = new Date(dateStr);
+    displayEl.textContent = (d.getMonth() + 1) + '月' + d.getDate() + '日';
+  }
+  
+  // 更新导航按钮状态
+  const btnNext = document.getElementById('btn-report-next');
+  if (btnNext) {
+    btnNext.disabled = dateStr === today;
+  }
+}
+
+// 渲染每日报告
+function renderDailyReport(report) {
+  // 日期显示
+  const dateEl = document.getElementById('daily-date');
+  if (dateEl) {
+    const d = new Date(report.date);
+    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    dateEl.textContent = d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + weekdays[d.getDay()];
+  }
+  
+  // AI简评
+  const aiCommentEl = document.getElementById('ai-comment-text');
+  if (aiCommentEl) {
+    aiCommentEl.textContent = report.aiComment || '今天继续加油哦~';
+  }
+  
+  // 核心数据
+  const durationEl = document.getElementById('daily-duration');
+  const focusEl = document.getElementById('daily-focus');
+  const tasksEl = document.getElementById('daily-tasks');
+  const pointsEl = document.getElementById('daily-points');
+  
+  if (durationEl) durationEl.textContent = report.summary.totalDurationMinutes || 0;
+  if (focusEl) focusEl.textContent = (report.summary.avgFocus || 0) + '%';
+  if (tasksEl) tasksEl.textContent = (report.summary.completedTasks || 0) + '/' + (report.summary.taskCount || 0);
+  if (pointsEl) pointsEl.textContent = report.summary.pointsEarned || 0;
+  
+  // 分心分析
+  const distractionTotal = document.getElementById('distraction-total');
+  if (distractionTotal) {
+    distractionTotal.textContent = (report.distractionAnalysis?.total || 0) + '次';
+  }
+  
+  // 专注度图表
+  renderFocusChart(report.focusTimeline);
+}
+
+// 获取学科图标（用于报告页面）
+function getSubjectIconForReport(subject) {
+  const icons = {
+    '语文': '📖',
+    '数学': '🔢',
+    '英语': '🔤',
+    '其他': '✏️'
+  };
+  return icons[subject] || '📚';
+}
+
+// 渲染专注度曲线图
+function renderFocusChart(focusData) {
+  const canvas = document.getElementById('focus-chart-canvas');
+  if (!canvas || !focusData || focusData.length === 0) return;
+  
+  const ctx = canvas.getContext('2d');
+  const width = canvas.offsetWidth || 300;
+  const height = 120;
+  
+  canvas.width = width * 2;
+  canvas.height = height * 2;
+  ctx.scale(2, 2);
+  
+  // 清空画布
+  ctx.clearRect(0, 0, width, height);
+  
+  // 绘制背景网格
+  ctx.strokeStyle = '#f1f5f9';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = (height - 20) * i / 4 + 10;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
+  }
+  
+  // 绘制曲线
+  const padding = 20;
+  const chartWidth = width - padding * 2;
+  const chartHeight = height - 30;
+  
+  ctx.beginPath();
+  ctx.strokeStyle = '#10B981';
+  ctx.lineWidth = 2;
+  
+  focusData.forEach((value, index) => {
+    const x = padding + (index / Math.max(focusData.length - 1, 1)) * chartWidth;
+    const y = height - 15 - (value / 100) * chartHeight;
+    
+    if (index === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+  });
+  
+  ctx.stroke();
+  
+  // 填充渐变区域
+  ctx.lineTo(padding + chartWidth, height - 15);
+  ctx.lineTo(padding, height - 15);
+  ctx.closePath();
+  
+  const gradient = ctx.createLinearGradient(0, 0, 0, height);
+  gradient.addColorStop(0, 'rgba(16, 185, 129, 0.3)');
+  gradient.addColorStop(1, 'rgba(16, 185, 129, 0)');
+  ctx.fillStyle = gradient;
+  ctx.fill();
+}
+
+// 显示空状态
+function showReportEmpty() {
+  const emptyEl = document.getElementById('report-empty');
+  const cardEl = document.getElementById('daily-card');
+  
+  if (emptyEl) emptyEl.style.display = 'block';
+  if (cardEl) cardEl.style.display = 'none';
+}
+
+// 初始化报告页面事件
+function initReportPage() {
+  // 返回按钮
+  document.getElementById('btn-report-back')?.addEventListener('click', () => {
+    navigateTo('home', 'back');
+  });
+  
+  // 日期导航
+  document.getElementById('btn-report-prev')?.addEventListener('click', () => {
+    reportCurrentDate.setDate(reportCurrentDate.getDate() - 1);
+    loadDailyReport(reportCurrentDate.toISOString().split('T')[0]);
+  });
+  
+  document.getElementById('btn-report-next')?.addEventListener('click', () => {
+    const today = new Date().toISOString().split('T')[0];
+    const current = reportCurrentDate.toISOString().split('T')[0];
+    if (current < today) {
+      reportCurrentDate.setDate(reportCurrentDate.getDate() + 1);
+      loadDailyReport(reportCurrentDate.toISOString().split('T')[0]);
+    }
+  });
+  
+  // 报告类型切换
+  document.querySelectorAll('.report-tab').forEach(tab => {
+    tab.addEventListener('click', (e) => {
+      document.querySelectorAll('.report-tab').forEach(t => t.classList.remove('active'));
+      e.target.classList.add('active');
+      
+      const tabType = e.target.dataset.tab;
+      const dailyContent = document.getElementById('report-content-daily');
+      const weeklyContent = document.getElementById('report-content-weekly');
+      const habitsContent = document.getElementById('report-content-habits');
+      
+      if (dailyContent) dailyContent.style.display = tabType === 'daily' ? 'block' : 'none';
+      if (weeklyContent) weeklyContent.style.display = tabType === 'weekly' ? 'block' : 'none';
+      if (habitsContent) habitsContent.style.display = tabType === 'habits' ? 'block' : 'none';
+      
+      if (tabType === 'weekly') {
+        loadWeeklyReport();
+      } else if (tabType === 'habits') {
+        loadHabitsProgress();
+      }
+    });
+  });
+  
+  // 开始学习按钮
+  document.getElementById('btn-report-start-study')?.addEventListener('click', () => {
+    navigateTo('home');
+  });
+  
+  // 生成模拟数据按钮
+  document.getElementById('btn-generate-mock-data')?.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 生成中...';
+    
+    try {
+      if (window.LearningReport && window.LearningReport.mock) {
+        const count = await window.LearningReport.mock.generateMockData();
+        showToast(`✨ 已生成 ${count} 个学习会话的模拟数据！`, 'success');
+        
+        // 重新加载报告
+        setTimeout(() => {
+          loadDailyReport(new Date().toISOString().split('T')[0]);
+        }, 500);
+      }
+    } catch (error) {
+      console.error('生成模拟数据失败:', error);
+      showToast('生成失败，请重试', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> 生成演示数据';
+    }
+  });
+  
+  // 分享报告
+  document.getElementById('btn-share-report')?.addEventListener('click', async () => {
+    showToast('正在生成分享图片...', 'info');
+    try {
+      if (window.LearningReport && window.LearningReport.pdf) {
+        const imageData = await window.LearningReport.pdf.generateReportImage('daily-card');
+        if (imageData) {
+          // 尝试使用Web Share API
+          if (navigator.share) {
+            const blob = await (await fetch(imageData)).blob();
+            const file = new File([blob], '学习报告.png', { type: 'image/png' });
+            await navigator.share({
+              title: '盯盯作业 - 学习报告',
+              text: '看看我今天的学习成果！',
+              files: [file]
+            });
+          } else {
+            // 降级为下载
+            const link = document.createElement('a');
+            link.download = '学习报告.png';
+            link.href = imageData;
+            link.click();
+            showToast('报告图片已保存', 'success');
+          }
+        }
+      }
+    } catch (error) {
+      console.error('分享失败:', error);
+      showToast('分享失败，请重试', 'error');
+    }
+  });
+  
+  // 导出PDF
+  document.getElementById('btn-export-report')?.addEventListener('click', async () => {
+    showToast('正在生成PDF报告...', 'info');
+    try {
+      if (window.LearningReport && window.LearningReport.pdf) {
+        const activeTab = document.querySelector('.report-tab.active');
+        const isWeekly = activeTab?.dataset.tab === 'weekly';
+        
+        let filename;
+        if (isWeekly) {
+          filename = await window.LearningReport.pdf.exportWeeklyReport();
+        } else {
+          filename = await window.LearningReport.pdf.exportDailyReport();
+        }
+        
+        if (filename) {
+          showToast('PDF报告已生成: ' + filename, 'success');
+        } else {
+          showToast('导出失败，请确保有学习数据', 'error');
+        }
+      } else {
+        showToast('报告模块未加载', 'error');
+      }
+    } catch (error) {
+      console.error('PDF导出失败:', error);
+      showToast('导出失败，请重试', 'error');
+    }
+  });
+}
+
+// 加载周报
+async function loadWeeklyReport() {
+  try {
+    if (!window.LearningReport) {
+      console.log('📊 学习报告模块未加载');
+      return;
+    }
+    
+    const report = await window.LearningReport.generator.generateWeeklyReport();
+    
+    if (!report) {
+      const weeklyCard = document.getElementById('weekly-summary-card');
+      if (weeklyCard) {
+        weeklyCard.innerHTML = '<div class="report-empty" style="padding: 40px;"><div class="empty-icon">📊</div><h3>暂无周报数据</h3><p>学习一周后即可查看周报</p></div>';
+      }
+      return;
+    }
+    
+    renderWeeklyReport(report);
+    
+  } catch (error) {
+    console.error('加载周报失败:', error);
+  }
+}
+
+// 渲染周报
+function renderWeeklyReport(report) {
+  // 日期范围
+  const dateRange = document.getElementById('weekly-date-range');
+  if (dateRange) {
+    dateRange.textContent = formatDateShortReport(report.startDate) + ' - ' + formatDateShortReport(report.endDate);
+  }
+  
+  // 汇总数据
+  const weeklyDays = document.getElementById('weekly-days');
+  const weeklyDuration = document.getElementById('weekly-duration');
+  const weeklyTasks = document.getElementById('weekly-tasks');
+  const weeklyFocus = document.getElementById('weekly-focus');
+  
+  if (weeklyDays) weeklyDays.textContent = report.summary.totalDays || 0;
+  if (weeklyDuration) weeklyDuration.textContent = Math.round((report.summary.totalDuration || 0) / 60000) || Math.round((report.summary.totalDurationMinutes || 0));
+  if (weeklyTasks) weeklyTasks.textContent = report.summary.completedTasks || 0;
+  if (weeklyFocus) weeklyFocus.textContent = (report.summary.avgFocus || 0) + '%';
+  
+  // AI周评
+  const weeklyAiText = document.getElementById('weekly-ai-text');
+  if (weeklyAiText) weeklyAiText.textContent = report.aiWeeklyComment || '继续加油！';
+}
+
+// 加载习惯进度
+async function loadHabitsProgress() {
+  try {
+    if (!window.LearningReport) {
+      console.log('📊 学习报告模块未加载');
+      return;
+    }
+    
+    const habits = await window.LearningReport.habits.getUserHabits();
+    
+    const habitsList = document.getElementById('habits-list');
+    const habitsEmpty = document.getElementById('habits-empty');
+    
+    if (!habits || habits.length === 0) {
+      if (habitsList) habitsList.style.display = 'none';
+      if (habitsEmpty) habitsEmpty.style.display = 'block';
+      return;
+    }
+    
+    if (habitsList) habitsList.style.display = 'flex';
+    if (habitsEmpty) habitsEmpty.style.display = 'none';
+    
+    habitsList.innerHTML = habits.map(h => {
+      const progress = Math.min(100, Math.round(h.totalDaysAchieved / 21 * 100));
+      return '<div class="habit-card"><div class="habit-header"><div class="habit-icon">🌱</div><div class="habit-info"><div class="habit-name">' + h.name + '</div><div class="habit-streak">🔥 连续 ' + h.currentStreak + ' 天</div></div></div><div class="habit-progress-track"><div class="habit-progress-fill" style="width: ' + progress + '%"></div></div><div class="habit-days"><span class="current">' + h.totalDaysAchieved + ' 天</span><span>/ 21 天养成</span></div></div>';
+    }).join('');
+    
+  } catch (error) {
+    console.error('加载习惯进度失败:', error);
+  }
+}
+
+// 格式化日期（短格式）- 用于报告页面
+function formatDateShortReport(dateStr) {
+  const d = new Date(dateStr);
+  return (d.getMonth() + 1) + '月' + d.getDate() + '日';
+}
+
+// 记录分心事件（供外部调用）
+function recordDistractionEvent(type, details) {
+  if (window.LearningReport && window.LearningReport.collector) {
+    window.LearningReport.collector.recordDistraction(type, details || {});
+  }
+}
+
+// 记录任务完成（供外部调用）
+function recordTaskCompletion(task) {
+  if (window.LearningReport && window.LearningReport.collector) {
+    window.LearningReport.collector.recordTaskCompletion(task);
+  }
+}
+
+// 初始化报告页面
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(initReportPage, 200);
+});
+
+console.log('📊 学习报告页面模块已加载');

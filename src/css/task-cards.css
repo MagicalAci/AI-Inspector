@@ -1,0 +1,2600 @@
+/* ============================================
+   盯盯作业 - 任务卡片设计系统 v1.0
+   Task Card Design System
+   
+   包含：
+   1. 首页任务列表卡片（待执行、进行中、已完成）
+   2. 监督页面悬浮任务卡片
+   3. 不同任务模式的视觉差异化
+   4. 各种交互状态和动画
+   ============================================ */
+
+/* ==========================================
+   一、设计令牌（Design Tokens）
+   ========================================== */
+
+:root {
+  /* 任务模式颜色 */
+  --task-homework-primary: #10B981;      /* 作业 - 绿色 */
+  --task-homework-light: rgba(16, 185, 129, 0.1);
+  --task-homework-gradient: linear-gradient(135deg, #34D399 0%, #10B981 100%);
+  
+  --task-recite-primary: #8B5CF6;        /* 背诵 - 紫色 */
+  --task-recite-light: rgba(139, 92, 246, 0.1);
+  --task-recite-gradient: linear-gradient(135deg, #A78BFA 0%, #8B5CF6 100%);
+  
+  --task-dictation-primary: #F59E0B;     /* 听写 - 橙色 */
+  --task-dictation-light: rgba(245, 158, 11, 0.1);
+  --task-dictation-gradient: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+  
+  --task-copywrite-primary: #3B82F6;     /* 默写 - 蓝色 */
+  --task-copywrite-light: rgba(59, 130, 246, 0.1);
+  --task-copywrite-gradient: linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%);
+  
+  --task-reading-primary: #EC4899;       /* 朗读 - 粉色 */
+  --task-reading-light: rgba(236, 72, 153, 0.1);
+  --task-reading-gradient: linear-gradient(135deg, #F472B6 0%, #EC4899 100%);
+  
+  /* 任务状态颜色 */
+  --task-status-pending: #9CA3AF;
+  --task-status-active: #10B981;
+  --task-status-paused: #F59E0B;
+  --task-status-completed: #22C55E;
+  --task-status-failed: #EF4444;
+  
+  /* 卡片尺寸 */
+  --card-radius-sm: 12px;
+  --card-radius-md: 16px;
+  --card-radius-lg: 20px;
+  --card-radius-xl: 24px;
+  
+  /* 图标尺寸 */
+  --icon-size-sm: 32px;
+  --icon-size-md: 40px;
+  --icon-size-lg: 48px;
+}
+
+/* ==========================================
+   二、任务模式图标系统
+   ========================================== */
+
+/* 任务图标容器 */
+.task-icon-wrapper {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  border-radius: var(--card-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 20px;
+  transition: all 0.3s ease;
+}
+
+/* 不同模式的图标背景 */
+.task-icon-wrapper.mode-homework {
+  background: var(--task-homework-light);
+}
+
+.task-icon-wrapper.mode-recite {
+  background: var(--task-recite-light);
+}
+
+.task-icon-wrapper.mode-dictation {
+  background: var(--task-dictation-light);
+}
+
+.task-icon-wrapper.mode-copywrite {
+  background: var(--task-copywrite-light);
+}
+
+.task-icon-wrapper.mode-reading {
+  background: var(--task-reading-light);
+}
+
+/* ==========================================
+   三、首页任务列表卡片
+   ========================================== */
+
+/* 基础任务卡片 */
+.task-list-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: white;
+  border-radius: var(--card-radius-lg);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.task-list-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  transition: all 0.3s ease;
+}
+
+/* 不同模式的左侧边条颜色 */
+.task-list-card.mode-homework::before {
+  background: var(--task-homework-gradient);
+}
+
+.task-list-card.mode-recite::before {
+  background: var(--task-recite-gradient);
+}
+
+.task-list-card.mode-dictation::before {
+  background: var(--task-dictation-gradient);
+}
+
+.task-list-card.mode-copywrite::before {
+  background: var(--task-copywrite-gradient);
+}
+
+.task-list-card.mode-reading::before {
+  background: var(--task-reading-gradient);
+}
+
+/* 悬停效果 */
+.task-list-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.task-list-card:hover::before {
+  width: 6px;
+}
+
+/* 任务信息区 */
+.task-list-card .task-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.task-list-card .task-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1F2937;
+  margin: 0 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.task-list-card .task-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #9CA3AF;
+}
+
+.task-list-card .task-subject {
+  color: #6B7280;
+}
+
+.task-list-card .task-duration {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.task-list-card .task-duration i {
+  font-size: 10px;
+}
+
+/* 任务模式标签 */
+.task-mode-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.task-mode-badge.mode-homework {
+  background: var(--task-homework-light);
+  color: var(--task-homework-primary);
+}
+
+.task-mode-badge.mode-recite {
+  background: var(--task-recite-light);
+  color: var(--task-recite-primary);
+}
+
+.task-mode-badge.mode-dictation {
+  background: var(--task-dictation-light);
+  color: var(--task-dictation-primary);
+}
+
+.task-mode-badge.mode-copywrite {
+  background: var(--task-copywrite-light);
+  color: var(--task-copywrite-primary);
+}
+
+.task-mode-badge.mode-reading {
+  background: var(--task-reading-light);
+  color: var(--task-reading-primary);
+}
+
+/* 删除按钮 */
+.task-list-card .task-delete-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.08);
+  border: none;
+  color: #EF4444;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.task-list-card:hover .task-delete-btn {
+  opacity: 1;
+}
+
+.task-list-card .task-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  transform: scale(1.1);
+}
+
+/* ==========================================
+   四、任务卡片状态变体
+   ========================================== */
+
+/* 待执行状态 */
+.task-list-card.status-pending {
+  background: white;
+}
+
+/* 进行中状态 */
+.task-list-card.status-active {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(52, 211, 153, 0.08) 100%);
+  border-color: rgba(16, 185, 129, 0.2);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.15);
+}
+
+.task-list-card.status-active::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 16px;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  background: var(--task-status-active);
+  border-radius: 50%;
+  animation: activePulse 2s infinite;
+}
+
+@keyframes activePulse {
+  0%, 100% { transform: translateY(-50%) scale(1); opacity: 1; }
+  50% { transform: translateY(-50%) scale(1.3); opacity: 0.7; }
+}
+
+/* 暂停状态 */
+.task-list-card.status-paused {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(251, 191, 36, 0.08) 100%);
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.task-list-card.status-paused .task-name {
+  color: #92400E;
+}
+
+/* 已完成状态 */
+.task-list-card.status-completed {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.05) 0%, rgba(74, 222, 128, 0.08) 100%);
+  opacity: 0.85;
+}
+
+.task-list-card.status-completed .task-name {
+  text-decoration: line-through;
+  color: #6B7280;
+}
+
+.task-list-card.status-completed .task-icon-wrapper {
+  position: relative;
+}
+
+.task-list-card.status-completed .task-icon-wrapper::after {
+  content: '✓';
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 16px;
+  height: 16px;
+  background: var(--task-status-completed);
+  border-radius: 50%;
+  font-size: 10px;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+/* 失败/超时状态 */
+.task-list-card.status-failed {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.03) 0%, rgba(248, 113, 113, 0.06) 100%);
+  border-color: rgba(239, 68, 68, 0.15);
+}
+
+.task-list-card.status-failed .task-name {
+  color: #991B1B;
+}
+
+/* ==========================================
+   五、监督页面悬浮任务卡片
+   ========================================== */
+
+/* 悬浮卡片容器 */
+.floating-task-card {
+  position: absolute;
+  bottom: 120px;
+  left: 16px;
+  right: 16px;
+  z-index: 70;
+}
+
+/* 玻璃态卡片内容 */
+.floating-task-inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--card-radius-xl);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 不同模式的卡片背景调整 */
+.floating-task-inner.mode-recite {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+.floating-task-inner.mode-dictation {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.floating-task-inner.mode-copywrite {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.floating-task-inner.mode-reading {
+  background: rgba(236, 72, 153, 0.15);
+  border-color: rgba(236, 72, 153, 0.3);
+}
+
+/* 环形进度条区域 */
+.floating-progress-section {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+}
+
+.floating-progress-ring {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.floating-progress-ring .progress-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.15);
+  stroke-width: 5;
+}
+
+.floating-progress-ring .progress-fill {
+  fill: none;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 213.6;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 0.5s ease;
+}
+
+/* 不同模式的进度条颜色 */
+.floating-progress-ring.mode-homework .progress-fill {
+  stroke: url(#progressGradientHomework);
+}
+
+.floating-progress-ring.mode-recite .progress-fill {
+  stroke: #A78BFA;
+}
+
+.floating-progress-ring.mode-dictation .progress-fill {
+  stroke: #FBBF24;
+}
+
+.floating-progress-ring.mode-copywrite .progress-fill {
+  stroke: #60A5FA;
+}
+
+.floating-progress-ring.mode-reading .progress-fill {
+  stroke: #F472B6;
+}
+
+/* 时间显示 */
+.floating-time-display {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.floating-time-display .time-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  font-family: 'SF Mono', 'Menlo', monospace;
+}
+
+/* 任务信息 */
+.floating-task-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.floating-task-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.floating-task-label .mode-icon {
+  font-size: 14px;
+}
+
+.floating-task-label .label-text {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.floating-task-name {
+  font-size: 17px;
+  font-weight: 600;
+  color: white;
+  margin: 0 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.floating-task-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.floating-task-meta .total-time {
+  font-weight: 600;
+}
+
+/* 不同模式的时间颜色 */
+.floating-task-meta.mode-homework .total-time {
+  color: #34D399;
+}
+
+.floating-task-meta.mode-recite .total-time {
+  color: #A78BFA;
+}
+
+.floating-task-meta.mode-dictation .total-time {
+  color: #FBBF24;
+}
+
+.floating-task-meta.mode-copywrite .total-time {
+  color: #60A5FA;
+}
+
+.floating-task-meta.mode-reading .total-time {
+  color: #F472B6;
+}
+
+/* 完成按钮 */
+.floating-complete-btn {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  color: white;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+/* 不同模式的完成按钮颜色 */
+.floating-complete-btn.mode-homework {
+  background: var(--task-homework-gradient);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.5), inset 0 2px 0 rgba(255, 255, 255, 0.2);
+}
+
+.floating-complete-btn.mode-recite {
+  background: var(--task-recite-gradient);
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.5), inset 0 2px 0 rgba(255, 255, 255, 0.2);
+}
+
+.floating-complete-btn.mode-dictation {
+  background: var(--task-dictation-gradient);
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.5), inset 0 2px 0 rgba(255, 255, 255, 0.2);
+}
+
+.floating-complete-btn.mode-copywrite {
+  background: var(--task-copywrite-gradient);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.5), inset 0 2px 0 rgba(255, 255, 255, 0.2);
+}
+
+.floating-complete-btn.mode-reading {
+  background: var(--task-reading-gradient);
+  box-shadow: 0 4px 16px rgba(236, 72, 153, 0.5), inset 0 2px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* 按钮高光效果 */
+.floating-complete-btn::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 5px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), transparent);
+  border-radius: 8px;
+}
+
+.floating-complete-btn:hover {
+  transform: scale(1.08);
+}
+
+.floating-complete-btn:active {
+  transform: scale(0.95);
+}
+
+/* ==========================================
+   六、任务进度条（听写/背诵专用）
+   ========================================== */
+
+.task-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.task-progress-bar .progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+.task-progress-bar.mode-dictation .progress-fill {
+  background: var(--task-dictation-gradient);
+}
+
+.task-progress-bar.mode-recite .progress-fill {
+  background: var(--task-recite-gradient);
+}
+
+.task-progress-bar.mode-copywrite .progress-fill {
+  background: var(--task-copywrite-gradient);
+}
+
+/* ==========================================
+   七、任务切换指示器（点状）
+   ========================================== */
+
+.task-dots-indicator {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.task-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.task-dot.active {
+  width: 20px;
+  border-radius: 3px;
+  background: white;
+}
+
+.task-dot.completed {
+  background: var(--task-status-completed);
+}
+
+/* ==========================================
+   八、素材状态指示器（可点击）
+   ========================================== */
+
+.material-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  position: relative;
+}
+
+.material-indicator:hover {
+  transform: scale(1.05);
+}
+
+.material-indicator:active {
+  transform: scale(0.98);
+}
+
+/* 已上传状态 - 可点击查看 */
+.material-indicator.has-material {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22C55E;
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+.material-indicator.has-material:hover {
+  background: rgba(34, 197, 94, 0.2);
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.2);
+}
+
+.material-indicator.has-material::after {
+  content: '点击查看';
+  position: absolute;
+  bottom: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: #6B7280;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.material-indicator.has-material:hover::after {
+  opacity: 1;
+}
+
+/* 待上传状态 - 可点击上传 */
+.material-indicator.no-material {
+  background: rgba(239, 68, 68, 0.1);
+  color: #EF4444;
+  border-color: rgba(239, 68, 68, 0.2);
+  animation: materialPulse 2s ease infinite;
+}
+
+@keyframes materialPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1); }
+}
+
+.material-indicator.no-material:hover {
+  background: rgba(239, 68, 68, 0.2);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+  animation: none;
+}
+
+.material-indicator.no-material::after {
+  content: '点击上传';
+  position: absolute;
+  bottom: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: #6B7280;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.material-indicator.no-material:hover::after {
+  opacity: 1;
+}
+
+.material-indicator i {
+  font-size: 10px;
+}
+
+/* 上传图标动画 */
+.material-indicator.no-material i {
+  animation: uploadBounce 1s ease infinite;
+}
+
+@keyframes uploadBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+.material-indicator.no-material:hover i {
+  animation: none;
+}
+
+/* ==========================================
+   九、卡片动画效果
+   ========================================== */
+
+/* 入场动画 */
+@keyframes cardSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.task-list-card.animate-in {
+  animation: cardSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* 完成动画 */
+@keyframes cardComplete {
+  0% { transform: scale(1); }
+  30% { transform: scale(0.98); }
+  60% { transform: scale(1.02); background: rgba(34, 197, 94, 0.15); }
+  100% { transform: scale(1); background: transparent; }
+}
+
+.task-list-card.animate-complete {
+  animation: cardComplete 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 删除动画 */
+@keyframes cardRemove {
+  to {
+    opacity: 0;
+    transform: translateX(100px) scale(0.9);
+    height: 0;
+    padding: 0;
+    margin: 0;
+  }
+}
+
+.task-list-card.animate-remove {
+  animation: cardRemove 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* 高亮动画 */
+@keyframes cardHighlight {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.3); }
+}
+
+.task-list-card.animate-highlight {
+  animation: cardHighlight 1.5s ease infinite;
+}
+
+/* 悬浮卡片出场动画 */
+@keyframes floatingCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.floating-task-card.animate-in {
+  animation: floatingCardIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* 模式切换动画 */
+@keyframes modeSwitch {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.95); filter: blur(2px); }
+  100% { transform: scale(1); filter: blur(0); }
+}
+
+.floating-task-inner.mode-switching {
+  animation: modeSwitch 0.4s ease;
+}
+
+/* ==========================================
+   十、展示页面样式
+   ========================================== */
+
+.task-cards-showcase {
+  padding: 20px;
+  padding-bottom: 100px;
+  overflow-y: auto;
+  height: calc(100% - 60px);
+  background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%);
+}
+
+.showcase-section {
+  margin-bottom: 32px;
+}
+
+.showcase-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1F2937;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid rgba(16, 185, 129, 0.2);
+}
+
+.showcase-section-title i {
+  color: #10B981;
+}
+
+.showcase-cards-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 预览框 - 用于展示监督页卡片 */
+.showcase-preview-box {
+  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  padding: 40px 20px;
+  position: relative;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.showcase-preview-box::before {
+  content: '监督页面预览';
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.showcase-preview-box .floating-task-card {
+  position: relative;
+  bottom: auto;
+  left: auto;
+  right: auto;
+  width: 100%;
+  max-width: 350px;
+}
+
+/* 代码展示区 */
+.showcase-code {
+  background: #1E293B;
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 12px;
+  overflow-x: auto;
+}
+
+.showcase-code pre {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #E2E8F0;
+  font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
+}
+
+.showcase-code .code-comment {
+  color: #64748B;
+}
+
+.showcase-code .code-class {
+  color: #7DD3FC;
+}
+
+.showcase-code .code-string {
+  color: #A5D6FF;
+}
+
+/* 交互演示按钮组 */
+.showcase-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.showcase-action-btn {
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: white;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.showcase-action-btn:hover {
+  background: #F3F4F6;
+  transform: translateY(-1px);
+}
+
+.showcase-action-btn.active {
+  background: var(--task-homework-gradient);
+  color: white;
+  border-color: transparent;
+}
+
+/* 说明文字 */
+.showcase-note {
+  font-size: 12px;
+  color: #6B7280;
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 10px;
+  line-height: 1.6;
+}
+
+.showcase-note strong {
+  color: #374151;
+}
+
+/* 快速参考表 */
+.showcase-reference-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 12px;
+}
+
+.showcase-reference-table th,
+.showcase-reference-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.showcase-reference-table th {
+  background: rgba(0, 0, 0, 0.02);
+  font-weight: 600;
+  color: #374151;
+}
+
+.showcase-reference-table td {
+  color: #6B7280;
+}
+
+.showcase-reference-table .color-swatch {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+/* ==========================================
+   十一、听写模式特殊交互卡片
+   ========================================== */
+
+/* 听写卡片容器 */
+.dictation-card {
+  background: rgba(245, 158, 11, 0.08);
+  backdrop-filter: blur(20px);
+  border-radius: var(--card-radius-xl);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  padding: 24px 20px;
+  margin: 12px 16px;
+}
+
+/* 当前单词显示 */
+.dictation-word-display {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.dictation-word-display .current-word {
+  font-size: 32px;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  margin-bottom: 8px;
+  min-height: 44px;
+}
+
+.dictation-word-display .word-translation {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.dictation-word-display .word-hidden {
+  font-size: 28px;
+  color: rgba(255, 255, 255, 0.3);
+  letter-spacing: 8px;
+}
+
+/* 播放控制 */
+.dictation-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.dictation-control-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-size: 20px;
+}
+
+.dictation-control-btn.btn-prev,
+.dictation-control-btn.btn-next {
+  width: 44px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  font-size: 16px;
+}
+
+.dictation-control-btn.btn-prev:hover,
+.dictation-control-btn.btn-next:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.05);
+}
+
+.dictation-control-btn.btn-play {
+  background: var(--task-dictation-gradient);
+  color: white;
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4);
+}
+
+.dictation-control-btn.btn-play:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 24px rgba(245, 158, 11, 0.5);
+}
+
+.dictation-control-btn.btn-play.playing {
+  animation: playingPulse 1.5s ease infinite;
+}
+
+@keyframes playingPulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4); }
+  50% { box-shadow: 0 4px 30px rgba(245, 158, 11, 0.7), 0 0 0 8px rgba(245, 158, 11, 0.1); }
+}
+
+/* 播放次数和速度 */
+.dictation-playback-info {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.playback-count {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.playback-count .count-value {
+  color: #FBBF24;
+  font-weight: 600;
+}
+
+.playback-speed {
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.playback-speed:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.playback-speed.active {
+  background: rgba(245, 158, 11, 0.3);
+  color: #FBBF24;
+}
+
+/* 单词进度 */
+.dictation-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dictation-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.dictation-progress-bar .fill {
+  height: 100%;
+  background: var(--task-dictation-gradient);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.dictation-progress-text {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dictation-progress-text .current {
+  color: #FBBF24;
+}
+
+/* 单词列表预览 */
+.dictation-word-list {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.word-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transition: all 0.2s ease;
+}
+
+.word-dot.current {
+  background: #FBBF24;
+  transform: scale(1.3);
+}
+
+.word-dot.completed {
+  background: #22C55E;
+}
+
+.word-dot.error {
+  background: #EF4444;
+}
+
+/* ==========================================
+   十二、默写模式特殊交互卡片
+   ========================================== */
+
+.copywrite-card {
+  background: rgba(59, 130, 246, 0.08);
+  backdrop-filter: blur(20px);
+  border-radius: var(--card-radius-xl);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  padding: 24px 20px;
+  margin: 12px 16px;
+}
+
+/* 提示区域 */
+.copywrite-prompt {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.copywrite-prompt .prompt-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.copywrite-prompt .prompt-text {
+  font-size: 16px;
+  color: white;
+  line-height: 1.6;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+}
+
+.copywrite-prompt .prompt-text .highlight {
+  color: #60A5FA;
+  font-weight: 600;
+}
+
+.copywrite-prompt .prompt-text .blank {
+  display: inline-block;
+  min-width: 60px;
+  height: 24px;
+  border-bottom: 2px dashed rgba(255, 255, 255, 0.4);
+  vertical-align: middle;
+  margin: 0 4px;
+}
+
+/* 写作区域 */
+.copywrite-input-area {
+  margin-bottom: 20px;
+}
+
+.copywrite-input-area .input-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.copywrite-textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  color: white;
+  font-size: 16px;
+  line-height: 1.6;
+  resize: none;
+  transition: all 0.2s ease;
+}
+
+.copywrite-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.copywrite-textarea:focus {
+  outline: none;
+  border-color: rgba(59, 130, 246, 0.5);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* 检查结果显示 */
+.copywrite-result {
+  padding: 12px 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.copywrite-result.correct {
+  background: rgba(34, 197, 94, 0.2);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.copywrite-result.incorrect {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.copywrite-result .result-icon {
+  font-size: 20px;
+  margin-right: 8px;
+}
+
+.copywrite-result .result-text {
+  color: white;
+  font-size: 14px;
+}
+
+.copywrite-result .correct-answer {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* 默写操作按钮 */
+.copywrite-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.copywrite-btn {
+  flex: 1;
+  padding: 14px;
+  border-radius: 12px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.copywrite-btn.btn-check {
+  background: var(--task-copywrite-gradient);
+  color: white;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+}
+
+.copywrite-btn.btn-check:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+.copywrite-btn.btn-hint {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.copywrite-btn.btn-hint:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.copywrite-btn.btn-skip {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* ==========================================
+   十三、背诵模式特殊交互卡片
+   ========================================== */
+
+.recite-card {
+  background: rgba(139, 92, 246, 0.08);
+  backdrop-filter: blur(20px);
+  border-radius: var(--card-radius-xl);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  padding: 24px 20px;
+  margin: 12px 16px;
+}
+
+/* 原文显示 */
+.recite-original {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.recite-original .original-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+.recite-original .original-text {
+  font-size: 18px;
+  color: white;
+  line-height: 1.8;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  position: relative;
+}
+
+.recite-original .original-text .verse-number {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  background: rgba(139, 92, 246, 0.3);
+  border-radius: 50%;
+  font-size: 12px;
+  color: #A78BFA;
+  margin-right: 8px;
+  text-align: center;
+}
+
+/* 识别状态 */
+.recite-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+}
+
+.recite-status .status-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.recite-status.idle .status-icon {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.recite-status.listening .status-icon {
+  background: var(--task-recite-gradient);
+  animation: listeningPulse 1.5s ease infinite;
+}
+
+@keyframes listeningPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4); }
+  50% { transform: scale(1.05); box-shadow: 0 0 0 12px rgba(139, 92, 246, 0); }
+}
+
+.recite-status .status-text {
+  text-align: left;
+}
+
+.recite-status .status-text .main {
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 2px;
+}
+
+.recite-status .status-text .sub {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* 语音波形 */
+.recite-waveform {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 40px;
+  margin-bottom: 24px;
+}
+
+.waveform-bar {
+  width: 4px;
+  background: var(--task-recite-gradient);
+  border-radius: 2px;
+  animation: waveformAnimate 0.5s ease infinite;
+}
+
+.waveform-bar:nth-child(1) { animation-delay: 0s; height: 12px; }
+.waveform-bar:nth-child(2) { animation-delay: 0.1s; height: 20px; }
+.waveform-bar:nth-child(3) { animation-delay: 0.2s; height: 32px; }
+.waveform-bar:nth-child(4) { animation-delay: 0.15s; height: 24px; }
+.waveform-bar:nth-child(5) { animation-delay: 0.25s; height: 28px; }
+.waveform-bar:nth-child(6) { animation-delay: 0.1s; height: 20px; }
+.waveform-bar:nth-child(7) { animation-delay: 0.05s; height: 16px; }
+.waveform-bar:nth-child(8) { animation-delay: 0.2s; height: 24px; }
+.waveform-bar:nth-child(9) { animation-delay: 0.15s; height: 28px; }
+.waveform-bar:nth-child(10) { animation-delay: 0s; height: 12px; }
+
+@keyframes waveformAnimate {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.5); }
+}
+
+.recite-waveform.idle .waveform-bar {
+  animation: none;
+  opacity: 0.3;
+}
+
+/* 识别结果对比 */
+.recite-comparison {
+  margin-bottom: 20px;
+}
+
+.recite-comparison .comparison-item {
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+}
+
+.recite-comparison .comparison-item.original-line {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.recite-comparison .comparison-item.recognized-line {
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.recite-comparison .comparison-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.recite-comparison .comparison-text {
+  font-size: 14px;
+  color: white;
+  line-height: 1.5;
+}
+
+.recite-comparison .comparison-text .correct {
+  color: #22C55E;
+}
+
+.recite-comparison .comparison-text .incorrect {
+  color: #EF4444;
+  text-decoration: line-through;
+}
+
+.recite-comparison .comparison-text .missing {
+  color: #FBBF24;
+  text-decoration: underline;
+}
+
+/* 准确率显示 */
+.recite-accuracy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.accuracy-circle {
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+
+.accuracy-circle svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.accuracy-circle .bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 8;
+}
+
+.accuracy-circle .fill {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-dasharray: 226;
+  transition: stroke-dashoffset 0.5s ease;
+}
+
+.accuracy-circle .fill.high {
+  stroke: #22C55E;
+}
+
+.accuracy-circle .fill.medium {
+  stroke: #FBBF24;
+}
+
+.accuracy-circle .fill.low {
+  stroke: #EF4444;
+}
+
+.accuracy-circle .value {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 20px;
+  font-weight: 700;
+  color: white;
+}
+
+.accuracy-details {
+  text-align: left;
+}
+
+.accuracy-details .detail-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.accuracy-details .detail-item i {
+  width: 16px;
+  text-align: center;
+}
+
+.accuracy-details .detail-item .correct { color: #22C55E; }
+.accuracy-details .detail-item .incorrect { color: #EF4444; }
+.accuracy-details .detail-item .time { color: #60A5FA; }
+
+/* 背诵操作按钮 */
+.recite-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.recite-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-size: 24px;
+}
+
+.recite-btn.btn-record {
+  background: var(--task-recite-gradient);
+  color: white;
+  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+}
+
+.recite-btn.btn-record:hover {
+  transform: scale(1.08);
+}
+
+.recite-btn.btn-record.recording {
+  animation: recordingPulse 1s ease infinite;
+}
+
+@keyframes recordingPulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4); }
+  50% { box-shadow: 0 4px 30px rgba(239, 68, 68, 0.6), 0 0 0 8px rgba(239, 68, 68, 0.15); background: linear-gradient(135deg, #F87171 0%, #EF4444 100%); }
+}
+
+.recite-btn.btn-hint,
+.recite-btn.btn-retry {
+  width: 48px;
+  height: 48px;
+  font-size: 18px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+.recite-btn.btn-hint:hover,
+.recite-btn.btn-retry:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* ==========================================
+   十四、朗读模式特殊交互卡片
+   ========================================== */
+
+.reading-card {
+  background: rgba(236, 72, 153, 0.08);
+  backdrop-filter: blur(20px);
+  border-radius: var(--card-radius-xl);
+  border: 1px solid rgba(236, 72, 153, 0.2);
+  padding: 24px 20px;
+  margin: 12px 16px;
+}
+
+/* 朗读文本显示 */
+.reading-text-display {
+  margin-bottom: 24px;
+}
+
+.reading-text-display .text-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reading-text-display .text-content {
+  font-size: 18px;
+  color: white;
+  line-height: 2;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+}
+
+.reading-text-display .text-content .word {
+  display: inline;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.reading-text-display .text-content .word.current {
+  background: rgba(236, 72, 153, 0.4);
+  color: white;
+}
+
+.reading-text-display .text-content .word.read {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.reading-text-display .text-content .word.correct {
+  color: #22C55E;
+}
+
+.reading-text-display .text-content .word.incorrect {
+  color: #EF4444;
+  text-decoration: underline wavy;
+}
+
+/* 朗读录音控制 */
+.reading-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.reading-btn {
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.reading-btn.btn-record {
+  width: 72px;
+  height: 72px;
+  background: var(--task-reading-gradient);
+  color: white;
+  font-size: 28px;
+  box-shadow: 0 4px 24px rgba(236, 72, 153, 0.4);
+}
+
+.reading-btn.btn-record:hover {
+  transform: scale(1.08);
+}
+
+.reading-btn.btn-record.recording {
+  background: linear-gradient(135deg, #F87171 0%, #EF4444 100%);
+  animation: readingRecordPulse 1s ease infinite;
+}
+
+@keyframes readingRecordPulse {
+  0%, 100% { box-shadow: 0 4px 24px rgba(239, 68, 68, 0.4); }
+  50% { box-shadow: 0 4px 32px rgba(239, 68, 68, 0.6), 0 0 0 10px rgba(239, 68, 68, 0.1); }
+}
+
+.reading-btn.btn-play,
+.reading-btn.btn-sample {
+  width: 52px;
+  height: 52px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  font-size: 20px;
+}
+
+.reading-btn.btn-play:hover,
+.reading-btn.btn-sample:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.05);
+}
+
+/* 朗读评分显示 */
+.reading-score {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  margin-bottom: 20px;
+}
+
+.reading-score .score-main {
+  text-align: center;
+}
+
+.reading-score .score-value {
+  font-size: 48px;
+  font-weight: 800;
+  background: var(--task-reading-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.reading-score .score-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.reading-score .score-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reading-score .score-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.reading-score .score-item-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  width: 50px;
+}
+
+.reading-score .score-item-bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+  overflow: hidden;
+  width: 80px;
+}
+
+.reading-score .score-item-bar .fill {
+  height: 100%;
+  border-radius: 3px;
+}
+
+.reading-score .score-item-bar .fill.fluency {
+  background: linear-gradient(90deg, #22C55E, #34D399);
+}
+
+.reading-score .score-item-bar .fill.accuracy {
+  background: linear-gradient(90deg, #3B82F6, #60A5FA);
+}
+
+.reading-score .score-item-bar .fill.intonation {
+  background: linear-gradient(90deg, #F59E0B, #FBBF24);
+}
+
+.reading-score .score-item-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+  width: 32px;
+  text-align: right;
+}
+
+/* ==========================================
+   十五、结果提交卡片（通用）
+   ========================================== */
+
+.result-card {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(24px);
+  border-radius: var(--card-radius-xl);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 32px 24px;
+  margin: 16px;
+  text-align: center;
+}
+
+/* 结果状态头部 */
+.result-header {
+  margin-bottom: 24px;
+}
+
+.result-icon-wrapper {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+}
+
+.result-card.success .result-icon-wrapper {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(74, 222, 128, 0.3));
+  box-shadow: 0 0 0 8px rgba(34, 197, 94, 0.1);
+  animation: successPulse 2s ease infinite;
+}
+
+@keyframes successPulse {
+  0%, 100% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0.1); }
+  50% { box-shadow: 0 0 0 16px rgba(34, 197, 94, 0.05); }
+}
+
+.result-card.partial .result-icon-wrapper {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(251, 191, 36, 0.3));
+  box-shadow: 0 0 0 8px rgba(245, 158, 11, 0.1);
+}
+
+.result-card.failed .result-icon-wrapper {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(248, 113, 113, 0.3));
+  box-shadow: 0 0 0 8px rgba(239, 68, 68, 0.1);
+}
+
+.result-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 8px;
+}
+
+.result-card.success .result-title {
+  background: linear-gradient(135deg, #22C55E, #4ADE80);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.result-card.partial .result-title {
+  color: #FBBF24;
+}
+
+.result-card.failed .result-title {
+  color: #F87171;
+}
+
+.result-subtitle {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* 主要得分/成绩 */
+.result-score-main {
+  margin-bottom: 24px;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+}
+
+.score-big-number {
+  font-size: 64px;
+  font-weight: 800;
+  color: white;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.result-card.success .score-big-number {
+  background: linear-gradient(135deg, #22C55E, #4ADE80);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.score-big-number .unit {
+  font-size: 24px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.6);
+}
+
+.score-rank {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.score-rank i {
+  color: #FBBF24;
+}
+
+/* 统计数据网格 */
+.result-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.result-stat-item {
+  padding: 16px 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+}
+
+.result-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 4px;
+}
+
+.result-stat-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.result-stat-item.highlight {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.result-stat-item.highlight .result-stat-value {
+  color: #4ADE80;
+}
+
+.result-stat-item.warning {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.result-stat-item.warning .result-stat-value {
+  color: #F87171;
+}
+
+/* 详细列表（正确/错误项） */
+.result-detail-list {
+  text-align: left;
+  margin-bottom: 24px;
+}
+
+.result-detail-title {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.result-detail-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.result-detail-item {
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.result-detail-item.correct {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ADE80;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.result-detail-item.incorrect {
+  background: rgba(239, 68, 68, 0.15);
+  color: #F87171;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* 奖励展示 */
+.result-rewards {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+}
+
+.reward-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reward-icon {
+  font-size: 24px;
+}
+
+.reward-info {
+  text-align: left;
+}
+
+.reward-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #FBBF24;
+}
+
+.reward-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+}
+
+/* 结果操作按钮 */
+.result-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.result-btn {
+  flex: 1;
+  padding: 16px;
+  border-radius: 14px;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.result-btn.btn-primary {
+  background: linear-gradient(135deg, #22C55E, #16A34A);
+  color: white;
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.3);
+}
+
+.result-btn.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+}
+
+.result-btn.btn-secondary {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+.result-btn.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.result-btn.btn-retry {
+  background: linear-gradient(135deg, #F59E0B, #D97706);
+  color: white;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+}
+
+.result-btn.btn-retry:hover {
+  transform: translateY(-2px);
+}
+
+/* 进度动画 - 结果卡片出现时 */
+@keyframes resultCardIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(30px);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.result-card.animate-in {
+  animation: resultCardIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* 分数数字动画 */
+@keyframes scoreCountUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.result-card.animate-in .score-big-number {
+  animation: scoreCountUp 0.4s ease 0.3s both;
+}
+
+/* 星星/奖励弹出动画 */
+@keyframes rewardPop {
+  0% { transform: scale(0) rotate(-30deg); opacity: 0; }
+  50% { transform: scale(1.2) rotate(10deg); }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+.result-card.animate-in .reward-icon {
+  animation: rewardPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.5s both;
+}
+
+/* ==========================================
+   十六、首页特殊任务提示卡片
+   ========================================== */
+
+.task-special-hint {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(251, 191, 36, 0.15));
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 14px;
+  margin-top: 12px;
+}
+
+.task-special-hint .hint-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--task-dictation-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.task-special-hint .hint-content {
+  flex: 1;
+}
+
+.task-special-hint .hint-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1F2937;
+  margin-bottom: 2px;
+}
+
+.task-special-hint .hint-description {
+  font-size: 12px;
+  color: #6B7280;
+}
+
+.task-special-hint .hint-action {
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #F59E0B;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.task-special-hint .hint-action:hover {
+  background: #FEF3C7;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+/* ==========================================
+   十七、素材预览/上传弹窗
+   ========================================== */
+
+.material-preview-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: modalFadeIn 0.25s ease;
+  padding: 20px;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.material-preview-content {
+  background: white;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 360px;
+  overflow: hidden;
+  animation: modalSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes modalSlideUp {
+  from { opacity: 0; transform: translateY(30px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.material-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #F3F4F6;
+}
+
+.material-preview-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1F2937;
+  margin: 0;
+}
+
+.material-preview-header h3 i {
+  color: #10B981;
+}
+
+.material-preview-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #F3F4F6;
+  border: none;
+  color: #6B7280;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.material-preview-close:hover {
+  background: #E5E7EB;
+  color: #374151;
+}
+
+/* 图片预览区域 */
+.material-preview-body {
+  padding: 20px;
+  background: #F9FAFB;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.material-preview-body img {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 演示用素材预览 */
+.material-preview-body.demo {
+  padding: 24px;
+}
+
+.demo-material-content {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.demo-material-icon {
+  font-size: 48px;
+  flex-shrink: 0;
+}
+
+.demo-material-text {
+  flex: 1;
+}
+
+.demo-material-text h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1F2937;
+  margin: 0 0 8px;
+}
+
+.demo-material-text p {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #4B5563;
+  margin: 0 0 12px;
+}
+
+.demo-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  background: rgba(139, 92, 246, 0.1);
+  color: #8B5CF6;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* 底部操作区 */
+.material-preview-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-top: 1px solid #F3F4F6;
+  background: white;
+}
+
+.material-task-name {
+  font-size: 13px;
+  color: #6B7280;
+}
+
+.material-change-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  background: linear-gradient(135deg, #10B981, #059669);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.material-change-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* 上传区域 */
+.material-upload-body {
+  padding: 24px 20px;
+}
+
+.upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 20px;
+  border: 2px dashed #D1D5DB;
+  border-radius: 16px;
+  background: #F9FAFB;
+  text-align: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  margin-bottom: 20px;
+}
+
+.upload-area:hover {
+  border-color: #10B981;
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.upload-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10B981, #34D399);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  color: white;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+}
+
+.upload-text h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1F2937;
+  margin: 0 0 4px;
+}
+
+.upload-text p {
+  font-size: 13px;
+  color: #6B7280;
+  margin: 0;
+}
+
+/* 上传选项按钮 */
+.upload-options {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.upload-option-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 12px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.upload-option-btn.camera {
+  background: linear-gradient(135deg, #3B82F6, #2563EB);
+  color: white;
+}
+
+.upload-option-btn.camera:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.upload-option-btn.album {
+  background: #F3F4F6;
+  color: #374151;
+}
+
+.upload-option-btn.album:hover {
+  background: #E5E7EB;
+}
+
+/* 上传提示 */
+.upload-tips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(245, 158, 11, 0.1);
+  border-radius: 10px;
+  font-size: 12px;
+  color: #92400E;
+}
+
+.upload-tips i {
+  color: #F59E0B;
+  font-size: 14px;
+}

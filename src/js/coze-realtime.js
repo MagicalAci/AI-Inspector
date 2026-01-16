@@ -1238,32 +1238,6 @@ const CozeRealtime = (() => {
       channels.supervisor.isActive = true;
       channels.supervisor.room = { id: 'fallback_' + Date.now(), isMock: true };
     }
-
-      // 启动视频截图（1秒一次）
-      channels.supervisor.screenshotInterval = setInterval(() => {
-        if (channels.supervisor.isActive) {
-          const screenshot = captureVideoScreenshot();
-          if (screenshot) {
-            sendScreenshotToSupervisor(screenshot);
-          }
-        }
-      }, 1000); // 1秒一次
-
-      // 启动定期检查（每3分钟，用于补充检查）
-      channels.supervisor.checkInterval = setInterval(async () => {
-        if (channels.supervisor.isActive) {
-          await supervisorCheck();
-        }
-      }, 3 * 60 * 1000);
-
-      console.log('[CozeRealtime] Supervisor mode started');
-      updateUIState();
-      
-    } catch (error) {
-      console.error('[CozeRealtime] Failed to start supervisor:', error);
-      showToast('启动监督模式失败: ' + error.message, 'error');
-      channels.supervisor.isActive = false;
-    }
   }
 
   /**
@@ -1391,28 +1365,6 @@ const CozeRealtime = (() => {
       const fallbackMsg = '小影老师来啦，有什么问题尽管问！';
       showAIBubble(fallbackMsg, 'high');
       StatusIndicator.update('listening', '正在听...');
-    }
-
-      // 启动语音识别
-      startVoiceRecognition('helper');
-      
-      // 启动无响应计时器（1分钟无响应自动关闭）
-      channels.helper.lastActivityTime = Date.now();
-      channels.helper.inactivityTimer = setInterval(() => {
-        const timeSinceLastActivity = Date.now() - channels.helper.lastActivityTime;
-        if (timeSinceLastActivity > 60000) { // 1分钟
-          console.log('[CozeRealtime] 求助房间1分钟无响应，自动关闭');
-          stopHelper();
-        }
-      }, 10000); // 每10秒检查一次
-
-      console.log('[CozeRealtime] Helper mode started');
-      updateUIState();
-      
-    } catch (error) {
-      console.error('[CozeRealtime] Failed to start helper:', error);
-      channels.helper.isActive = false;
-      showToast('连接失败，请重试', 'error');
     }
   }
 
